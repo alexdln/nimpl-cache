@@ -20,16 +20,16 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git://github.com/vordgi/nimpl-cache.git"
+    "url": "git://github.com/alexdln/nimpl-cache.git"
   },
   "author": {
-    "name": "Savelyev Alexander",
-    "email": "vordgi1@gmail.com",
-    "url": "https://github.com/vordgi/"
+    "name": "Alex Savelyev",
+    "email": "dev@alexdln.com",
+    "url": "https://github.com/alexdln/"
   },
-  "license": "MIT",
   "devDependencies": {
-    "@types/node": "20.11.25",
-    "typescript": "5.4.2"
-  }
+    "@types/node": "24.10.1",
+    "typescript": "5.9.3"
+  },
+  "license": "MIT"
 }

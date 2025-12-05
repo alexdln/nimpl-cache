@@ -1,7 +1,7 @@
-import { revalidatePath } from 'next/cache';
+import { revalidatePath } from "next/cache";
 
 export async function GET() {
-    revalidatePath('/');
+    revalidatePath("/");
 
-    return Response.json({})
+    return Response.json({});
 }
