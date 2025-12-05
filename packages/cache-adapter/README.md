@@ -7,19 +7,21 @@ Visit https://nimpl.dev/docs/cache-adapter to view the full documentation.
 ## Installation
 
 **Using npm:**
+
 ```bash
 npm i @nimpl/cache-adapter
 ```
 
 **Using yarn:**
+
 ```bash
 yarn add @nimpl/cache-adapter
 ```
 
 ## Examples
 
-Base example with [@nimpl/cache-in-memory](https://github.com/vordgi/nimpl-cache/tree/main/packages/cache-in-memory). [See example](https://github.com/vordgi/nimpl-cache/tree/main/example).
+Base example with [@nimpl/cache-in-memory](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-in-memory). [See example](https://github.com/alexdln/nimpl-cache/tree/main/examples/external-store).
 
 ## License
 
-[MIT](https://github.com/vordgi/nimpl-cache/blob/main/LICENSE)
+[MIT](https://github.com/alexdln/nimpl-cache/blob/main/LICENSE)

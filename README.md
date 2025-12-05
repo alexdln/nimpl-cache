@@ -12,12 +12,12 @@ Visit [https://nimpl.dev](https://nimpl.dev/docs/cache-adapter) to view the full
 - Caching without server restart;
 - Clearing of outdated cache.
 
-[Read more about @nimpl/cache-adapter](https://github.com/vordgi/nimpl-cache/tree/main/packages/cache-adapter).
+[Read more about @nimpl/cache-adapter](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-adapter).
 
 ## Cache handlers
 
-@nimpl/cache-in-memory — base cacheHandler, which cache data in-memory. [Read more](https://github.com/vordgi/nimpl-cache/tree/main/packages/cache-in-memory)
+@nimpl/cache-in-memory — base cacheHandler, which cache data in-memory. [Read more](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-in-memory)
 
 ## License
 
-[MIT](https://github.com/vordgi/nimpl-cache/blob/main/LICENSE)
+[MIT](https://github.com/alexdln/nimpl-cache/blob/main/LICENSE)

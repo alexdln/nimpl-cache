@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "separate-store-example-server",
   "version": "0.1.0",
   "private": true,
   "scripts": {
