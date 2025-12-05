@@ -20,7 +20,7 @@ yarn add @nimpl/cache-in-memory
 
 ## Examples
 
-Base example with @nimpl/cache-in-memory. [See example](https://github.com/alexdln/nimpl-cache/tree/main/example).
+Base example with @nimpl/cache-in-memory. [See example](https://github.com/alexdln/nimpl-cache/tree/main/examples/external-store).
 
 ## License
 
