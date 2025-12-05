@@ -1,6 +1,6 @@
 {
   "name": "@nimpl/cache-adapter",
-  "version": "0.3.1",
+  "version": "0.0.1",
   "description": "",
   "main": "dist/index",
   "files": [
