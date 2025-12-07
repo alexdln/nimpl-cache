@@ -15,3 +15,12 @@ export const readChunks = async (entry: { value: ReadableStream }) => {
     }
     return chunks;
 };
+
+export const createStreamFromBuffer = (buffer: Buffer): ReadableStream => {
+    return new ReadableStream({
+        start(controller) {
+            controller.enqueue(buffer);
+            controller.close();
+        },
+    });
+};
