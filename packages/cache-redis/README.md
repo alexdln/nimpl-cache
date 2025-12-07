@@ -53,9 +53,9 @@ export default nextConfig;
 
 The cache handler accepts the following parameters (all optional):
 
-- `maxSize` (number): Maximum size of the LRU cache in bytes. Default: `50 * 1024 * 1024` (50MB) or value from `LRU_CACHE_MAX_SIZE` env var
-- `ttl` (number | "auto"): Time-to-live for LRU cache entries in seconds. Use `"auto"` to derive TTL from entry expiration. Prefer 0 or minimal values for multi-pod environments. Default: `"auto"`
-- `redisUrl` (string | undefined): Redis connection URL. Default: `process.env.REDIS_URL`
+- `lruTtl` (number | "auto"): Time-to-live for LRU cache entries in seconds. Use `"auto"` to derive TTL from entry expiration. Prefer 0 or minimal values for multi-pod environments. Default: `"auto"`
+- `redisOptions` (RedisOptions & { url?: string }): Redis connection options from `ioredis`. The `url` property can be used to specify the Redis connection URL. Default: `{ url: process.env.REDIS_URL || "redis://localhost:6379" }`
+- `lruOptions` (LRUCache.Options | LRUCache): Options for the LRU cache instance. Use `maxSize` property to set the maximum cache size in bytes. Default: `{ maxSize: 50 * 1024 * 1024 }` (50MB) or value from `LRU_CACHE_MAX_SIZE` env var (in MB)
 - `logger` (Logger): Custom logging function that receives a log data object with `type`, `status`, `source`, `key`, and optional `message` properties. Use this to integrate with your logging infrastructure (_e.g., structured logging, metrics collection_). Default: custom console logger (_enabled when `NEXT_PRIVATE_DEBUG_CACHE` or `NIC_LOGGER` environment variable is set_)
 
 ### Environment Variables

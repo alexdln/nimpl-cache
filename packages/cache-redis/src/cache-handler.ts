@@ -16,12 +16,12 @@ export class CacheHandler {
 
     private logger: Logger;
 
-    constructor({ lruTtl, redisOptions, logger, lruCacheOptions }: Options = {}) {
+    constructor({ lruTtl, redisOptions, logger, lruOptions }: Options = {}) {
         const isLoggerEnabled = logger || process.env.NEXT_PRIVATE_DEBUG_CACHE || process.env.NIC_LOGGER;
         this.logger = isLoggerEnabled ? logger || defaultLogger : () => {};
 
         this.redisLayer = new RedisLayer(redisOptions, this.logger);
-        this.lruLayer = new LruLayer(lruCacheOptions, this.logger, lruTtl);
+        this.lruLayer = new LruLayer(lruOptions, this.logger, lruTtl);
     }
 
     private logOperation(

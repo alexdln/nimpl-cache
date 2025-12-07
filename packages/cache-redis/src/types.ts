@@ -49,5 +49,5 @@ export type Options = {
     lruTtl?: number | "auto";
     logger?: Logger;
     redisOptions?: RedisOptions & { url?: string };
-    lruCacheOptions?: LRUCache<string, LruCacheEntry, unknown> | LRUCache.Options<string, LruCacheEntry, unknown>;
+    lruOptions?: LRUCache<string, LruCacheEntry, unknown> | LRUCache.Options<string, LruCacheEntry, unknown>;
 };
