@@ -1,3 +1,4 @@
+import { type Durations, type Metadata } from "../types";
 import { PREFIX_ENTRY, PREFIX_META } from "./constants";
 
 export const getCacheKeys = (key: string) => {
@@ -12,4 +13,21 @@ export const getCacheStatus = (timestamp: number, revalidate: number, expire: nu
     if (now > timestamp + expire * 1000) return "expired";
     if (now > timestamp + revalidate * 1000) return "revalidated";
     return "fresh";
+};
+
+export const getUpdatedMetadata = (
+    metadata: Metadata,
+    tags: string[],
+    durations: Durations | undefined,
+    now: number,
+): Metadata => {
+    if (!metadata.tags.some((tag) => tags.includes(tag))) return metadata;
+
+    return {
+        ...metadata,
+        stale: 0,
+        revalidate: durations?.expire ?? 0,
+        expire: Math.max(durations?.expire ?? 0, metadata.expire),
+        timestamp: now,
+    };
 };
