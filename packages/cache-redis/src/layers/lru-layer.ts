@@ -12,7 +12,7 @@ export class LruLayer {
     private lruTtl: number | "auto";
 
     constructor(
-        options: Options["lruCacheOptions"] = { maxSize: DEFAULT_LRU_MAX_SIZE },
+        options: Options["lruOptions"] = { maxSize: DEFAULT_LRU_MAX_SIZE },
         logger: Logger,
         lruTtl: number | "auto" = DEFAULT_LRU_TTL,
     ) {
@@ -36,7 +36,7 @@ export class LruLayer {
 
         const { entry, size } = memoryEntry;
         const status = getCacheStatus(entry.timestamp, entry.revalidate, entry.expire);
-        if (status === "expired") return null;
+        if (status === "expire") return null;
 
         const [cacheStream, responseStream] = entry.value.tee();
         entry.value = cacheStream;
