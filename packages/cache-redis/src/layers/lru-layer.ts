@@ -30,6 +30,10 @@ export class LruLayer {
         return this.lruTtl === "auto" ? expire * 1000 : this.lruTtl * 1000;
     }
 
+    checkIsReady() {
+        return true;
+    }
+
     readEntry(key: string) {
         const memoryEntry = this.lruClient.get(key);
         if (!memoryEntry) return undefined;

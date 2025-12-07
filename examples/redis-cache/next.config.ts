@@ -5,8 +5,7 @@ const nextConfig: NextConfig = {
 
     cacheHandlers: {
         default: import.meta.resolve("@nimpl/cache-redis"),
-        remote: import.meta.resolve("@nimpl/cache-redis"),
-        redis: import.meta.resolve("@nimpl/cache-redis"),
+        // default: import.meta.resolve("./cache-handler.js"),
     },
 };
 
