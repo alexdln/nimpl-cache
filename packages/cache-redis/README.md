@@ -1,6 +1,6 @@
 # @nimpl/cache-redis
 
-Redis-based cache handler with multi-pod support. Designed for Next.js but can be used to build custom caching solutions for any other stack (e.g. `cache` function in React Router 7 and Remix).
+Redis-based cache handler with multi-pod support. Designed for Next.js but can be used to build custom caching solutions for any other stack (e.g. `cache` function in React Router 7 or Remix).
 
 ## Overview
 
@@ -21,6 +21,8 @@ Cache entries are stored in Redis with separate keys for data (`nic:entry:{key}`
 On cache miss in-memory, the handler fetches from Redis and populates the local LRU cache.
 
 All cache entries have auto-delete configuration and are removed automatically when they expire. This optimizes memory usage by ensuring stale data is cleaned up and helps prioritize frequently accessed data in both layers.
+
+> **Note**: Next.js has additional caching layers beyond the cache handler. If the cache handler returns `undefined` (cache miss), Next.js will attempt to read the result from its internal caching solutions and run background revalidation.
 
 ## Installation
 
@@ -175,6 +177,29 @@ export const cache =
     return data;
   };
 ```
+
+## Health Checks
+
+The `checkIsReady()` method returns a boolean indicating whether the cache handler is ready to serve requests. It checks both the Redis connection status and the LRU cache layer availability.
+
+This method is particularly useful in Kubernetes environments for configuring readiness and startup probes. In some cases, you can also use it for liveness probes.
+
+```ts
+// src/app/api/readiness/route.ts
+import cacheHandler from "@nimpl/cache-redis";
+// or for local instances
+// const cacheHandler = require("./path/to/local-cache-handler.js");
+
+export async function GET() {
+  return Response.json({ ready: cacheHandler.checkIsReady() });
+}
+```
+
+> **Note**: The method returns `true` when the Redis connection is established. This ensures your application only receives traffic when the cache handler can properly serve requests.
+
+## Limitations
+
+> **Note**: Currently in Next.js background revalidation doesn't work correctly with dynamic API on page. This limitation exists for all caching solutions, including Next.js default cache-handler
 
 ## License
 
