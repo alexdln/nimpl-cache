@@ -10,6 +10,8 @@ export class RedisLayer {
 
     private logger: Logger;
 
+    private isConnected = false;
+
     constructor(redisOptions: Options["redisOptions"], logger: Logger) {
         this.logger = logger;
         const { url, ...restOptions } = redisOptions || {};
@@ -41,10 +43,12 @@ export class RedisLayer {
 
         redisClient.on("connect", () => {
             this.logger({ type: "CONNECTION", status: "CONNECTED", source: "REDIS", key: "connection" });
+            this.isConnected = true;
         });
 
         redisClient.on("ready", () => {
             this.logger({ type: "CONNECTION", status: "CONNECTED", source: "REDIS", key: "connection" });
+            this.isConnected = true;
         });
 
         redisClient.on("error", (err) => {
@@ -55,14 +59,17 @@ export class RedisLayer {
                 key: "connection",
                 message: err.message,
             });
+            this.isConnected = false;
         });
 
         redisClient.on("reconnecting", () => {
             this.logger({ type: "CONNECTION", status: "RECONNECTING", source: "REDIS", key: "connection" });
+            this.isConnected = false;
         });
 
         redisClient.on("close", () => {
             this.logger({ type: "CONNECTION", status: "DISCONNECTED", source: "REDIS", key: "connection" });
+            this.isConnected = false;
         });
 
         this.redisClient = redisClient;
@@ -86,6 +93,10 @@ export class RedisLayer {
                 await this.redisClient.unlink(...matchedKeys);
             }
         } while (cursor !== "0");
+    }
+
+    checkIsReady() {
+        return this.isConnected;
     }
 
     async readEntry(key: string) {

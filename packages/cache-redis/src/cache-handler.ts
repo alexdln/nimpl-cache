@@ -33,6 +33,10 @@ export class CacheHandler {
         this.logger({ type, status, source, key });
     }
 
+    checkIsReady() {
+        return this.redisLayer.checkIsReady() && this.lruLayer.checkIsReady();
+    }
+
     async get(key: string) {
         const pendingSet = await this.pendingSetsLayer.readEntry(key);
         if (pendingSet !== undefined) {
