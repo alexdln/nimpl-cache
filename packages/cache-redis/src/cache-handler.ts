@@ -1,79 +1,85 @@
-import { createClient } from "redis";
+import Redis from "ioredis";
 import { LRUCache } from "lru-cache";
 
 import {
     type Durations,
     type Logger,
-    type RedisCacheEntry,
     type Metadata,
     type Entry,
     type LruCacheEntry,
+    type LogData,
+    type Options,
 } from "./types";
-import { DEFAULT_LRU_MAX_SIZE, DEFAULT_LRU_TTL, PREFIX_ENTRY, PREFIX_META } from "./lib/constants";
-import { readChunks } from "./lib/read-chunks";
-import { logger } from "./lib/logger";
+import { DEFAULT_LRU_TTL, PREFIX_META } from "./lib/constants";
+import { createStreamFromBuffer, readChunks } from "./lib/stream";
+import { logger as defaultLogger } from "./lib/logger";
+import { getCacheKeys, getCacheStatus } from "./lib/helpers";
+import { createRedisClient } from "./layers/redis-layer";
+import { createLruClient } from "./layers/lru-layer";
+import { PendingsLayer } from "./layers/pendings-layer";
 
 export class CacheHandler {
-    pendingGets = new Map();
+    private lruTtl: number | "auto";
 
-    pendingSets = new Map();
+    private lruClient: LRUCache<string, LruCacheEntry, unknown>;
 
-    lruTtl: number | "auto";
+    private redisClient: Redis;
 
-    lruClient: LRUCache<string, LruCacheEntry, unknown>;
+    private pendingsLayer = new PendingsLayer();
 
-    redisClient: ReturnType<typeof createClient>;
+    private logger: Logger;
 
-    logger: Logger;
+    constructor({ lruTtl = DEFAULT_LRU_TTL, redisOptions, logger = defaultLogger, lruCacheOptions }: Options = {}) {
+        this.redisClient = createRedisClient(redisOptions, logger);
+        this.lruClient = createLruClient(lruCacheOptions);
 
-    constructor(
-        maxSize: number = DEFAULT_LRU_MAX_SIZE,
-        ttl: number | "auto" = DEFAULT_LRU_TTL,
-        redisUrl: string | undefined = process.env.REDIS_URL,
-        loggerArg: Logger = logger,
-    ) {
-        this.lruClient = new LRUCache<string, LruCacheEntry, unknown>({
-            maxSize,
-            sizeCalculation: (entry) => entry.size,
-            ttlAutopurge: true,
-        });
-
-        const client = createClient({ url: redisUrl });
-        client.connect();
-        this.redisClient = client;
-
-        this.logger = loggerArg;
-        this.lruTtl = ttl;
+        this.logger = logger;
+        this.lruTtl = lruTtl;
     }
 
     async cleanRedis(rule: RegExp | string) {
-        if (rule === "*") {
-            return this.redisClient.flushAll("ASYNC");
-        }
+        if (rule === "*") return this.redisClient.flushall();
 
         let cursor = "0";
         do {
-            const { cursor: nextCursor, keys } = await this.redisClient.scan(cursor, {
-                MATCH: rule instanceof RegExp ? "*" : rule,
-                COUNT: 1000,
-            });
+            const [nextCursor, keys] = await this.redisClient.scan(
+                cursor,
+                "MATCH",
+                rule instanceof RegExp ? "*" : rule,
+                "COUNT",
+                1000,
+            );
             cursor = nextCursor;
             const matchedKeys = rule instanceof RegExp ? keys.filter((key) => rule.test(key)) : keys;
             if (matchedKeys.length > 0) {
-                await this.redisClient.unlink(matchedKeys);
+                await this.redisClient.unlink(...matchedKeys);
             }
         } while (cursor !== "0");
     }
 
-    async getMemoryCache(cacheKey: string) {
-        const now = performance.timeOrigin + performance.now();
-        const memoryEntry = this.lruClient.get(cacheKey);
+    private calculateLruTtl(expire: number): number {
+        return this.lruTtl === "auto" ? expire * 1000 : this.lruTtl * 1000;
+    }
 
+    private logOperation(
+        type: "GET" | "SET" | "UPDATE_TAGS",
+        status: LogData["status"],
+        source: LogData["source"],
+        key: string,
+    ): void {
+        this.logger({ type, status, source, key });
+    }
+
+    async getMemoryCache(cacheKey: string) {
+        const memoryEntry = this.lruClient.get(cacheKey);
         if (!memoryEntry) return undefined;
 
         const { entry, size } = memoryEntry;
-
-        if (now > entry.timestamp + Math.max(entry.revalidate, entry.expire) * 1000) return null;
+        const status = getCacheStatus(entry.timestamp, entry.revalidate, entry.expire);
+        if (status === "expired") return null;
+        if (status === "revalidated") {
+            this.logOperation("GET", "UPDATING", "MEMORY", cacheKey);
+        }
 
         const [cacheStream, responseStream] = entry.value.tee();
         entry.value = cacheStream;
@@ -88,328 +94,217 @@ export class CacheHandler {
     }
 
     async getRedisCache(cacheKey: string, metaKey: string) {
-        const now = performance.timeOrigin + performance.now();
         const metaEntry = await this.redisClient.get(metaKey);
-
         if (!metaEntry) return undefined;
 
         const metaData: Metadata = JSON.parse(metaEntry);
-
-        if (now > metaData.timestamp + Math.max(metaData.revalidate, metaData.expire) * 1000) return null;
+        const status = getCacheStatus(metaData.timestamp, metaData.revalidate, metaData.expire);
+        if (status === "expired") return null;
+        if (status === "revalidated") {
+            this.logOperation("GET", "UPDATING", "REDIS", cacheKey);
+        }
 
         const redisEntry = await this.redisClient.get(cacheKey);
-
         if (!redisEntry) {
             await this.redisClient.del(metaKey);
             return undefined;
         }
 
-        const data: RedisCacheEntry = redisEntry;
-        const buffer = Buffer.from(data, "base64");
-        const stream = new ReadableStream({
-            start(controller) {
-                controller.enqueue(buffer);
-                controller.close();
-            },
+        const buffer = Buffer.from(redisEntry, "base64");
+        const entry: Entry = Object.assign(metaData, {
+            value: createStreamFromBuffer(buffer),
         });
-
-        const entry = {
-            value: stream,
-            tags: metaData.tags,
-            timestamp: metaData.timestamp,
-            stale: metaData.stale,
-            expire: metaData.expire,
-            revalidate: metaData.revalidate,
-        };
 
         return { entry, size: buffer.byteLength };
     }
 
     async get(key: string) {
-        const cacheKey = `${PREFIX_ENTRY}${key}`;
-        const metaKey = `${PREFIX_META}${key}`;
-        const pendingSet = this.pendingSets.get(cacheKey);
-        if (pendingSet) {
-            const updatedEntry = await pendingSet;
+        const { cacheKey, metaKey } = getCacheKeys(key);
 
-            if (updatedEntry) {
-                this.logger({
-                    type: "GET",
-                    status: "REVALIDATED",
-                    source: "NEW",
-                    key,
-                });
-                const [cacheStream, responseStream] = updatedEntry.value.tee();
-                updatedEntry.value = cacheStream;
-                return {
-                    ...updatedEntry,
-                    value: responseStream,
-                };
-            }
+        const pendingSet = await this.pendingsLayer.handlePendingSet(cacheKey);
+        if (pendingSet !== undefined) {
+            this.logOperation("GET", "REVALIDATED", "NEW", key);
+            return pendingSet;
         }
 
-        // null means outdated, undefined - not found
         const memoryCache = await this.getMemoryCache(cacheKey);
         if (memoryCache) {
-            this.logger({
-                type: "GET",
-                status: "HIT",
-                source: "MEMORY",
-                key,
-            });
+            this.logOperation("GET", "HIT", "MEMORY", key);
             return memoryCache.entry;
         }
 
-        // We use pendingGets to avoid duplicate requests to external store as well as pendingSets
-        const pendingGet = this.pendingGets.get(cacheKey);
-        if (pendingGet) {
-            const pendingEntry = await pendingGet;
-            if (!pendingEntry) {
-                this.logger({
-                    type: "GET",
-                    status: "MISS",
-                    source: "NONE",
+        const pendingGet = await this.pendingsLayer.handlePendingGet(cacheKey);
+        if (pendingGet !== undefined) {
+            this.logOperation("GET", pendingGet ? "HIT" : "MISS", pendingGet ? "REDIS" : "NONE", key);
+            return pendingGet;
+        }
+
+        const resolvePending = this.pendingsLayer.createPendingGet(cacheKey);
+
+        try {
+            const redisCache = await this.getRedisCache(cacheKey, metaKey);
+
+            if (redisCache === null) {
+                await this.redisClient.del(cacheKey, metaKey);
+            }
+
+            if (!redisCache) {
+                if (memoryCache === null) this.lruClient.delete(cacheKey);
+                this.logOperation(
+                    "GET",
+                    redisCache === null ? "EXPIRED" : "MISS",
+                    redisCache === null ? "REDIS" : "NONE",
                     key,
-                });
+                );
+                resolvePending(undefined);
                 return undefined;
             }
 
-            this.logger({
-                type: "GET",
-                status: "HIT",
-                source: "REDIS",
-                key,
-            });
+            const { entry, size } = redisCache;
+            const [cacheStream, responseStream] = entry.value.tee();
+            entry.value = cacheStream;
 
-            const [cacheStream, responseStream] = pendingEntry.value.tee();
-            pendingEntry.value = cacheStream;
+            this.lruClient.set(cacheKey, { entry, size }, { ttl: this.calculateLruTtl(entry.expire) });
 
-            return {
-                ...pendingEntry,
-                value: responseStream,
-            };
-        }
+            const responseEntry = { ...entry, value: responseStream };
+            resolvePending(responseEntry);
+            this.pendingsLayer.deletePendingGet(cacheKey);
 
-        let resolvePending = (value: unknown) => value;
-        const newPendingGet = new Promise((resolve) => {
-            resolvePending = resolve;
-        });
-        this.pendingGets.set(cacheKey, newPendingGet);
-
-        // null means outdated, undefined - not found
-        const redisCache = await this.getRedisCache(cacheKey, metaKey);
-        if (redisCache === null) {
-            await Promise.all([this.redisClient.del(cacheKey), this.redisClient.del(metaKey)]);
-        }
-        if (!redisCache) {
-            // if redis cache exist - we will overwrite memory cache later, if not - we will delete memory cache here
-            if (memoryCache === null) this.lruClient.delete(cacheKey);
-            this.logger({
-                type: "GET",
-                status: redisCache === null ? "EXPIRED" : "MISS",
-                source: redisCache === null ? "REDIS" : "NONE",
-                key,
-            });
+            this.logOperation("GET", "HIT", "REDIS", key);
+            return responseEntry;
+        } catch (err) {
             resolvePending(undefined);
-            return;
+            this.pendingsLayer.deletePendingGet(cacheKey);
+            throw err;
         }
-
-        const { entry, size } = redisCache;
-        const [cacheStream, responseStream] = entry.value.tee();
-        entry.value = cacheStream;
-
-        const lruExpire = this.lruTtl === "auto" ? entry.expire * 1000 : this.lruTtl * 1000;
-        this.lruClient.set(
-            cacheKey,
-            {
-                entry,
-                size,
-            },
-            { ttl: lruExpire },
-        );
-
-        const responseEntry = {
-            ...entry,
-            value: responseStream,
-        };
-
-        resolvePending(responseEntry);
-        this.pendingGets.delete(cacheKey);
-
-        this.logger({
-            type: "GET",
-            status: "HIT",
-            source: "REDIS",
-            key,
-        });
-
-        return responseEntry;
     }
 
     async set(key: string, pendingEntry: Promise<Entry>) {
-        const cacheKey = `${PREFIX_ENTRY}${key}`;
-        let resolvePending = (value: unknown) => value;
-        const pendingSet = new Promise((resolve) => {
-            resolvePending = resolve;
-        });
-        this.pendingSets.set(cacheKey, pendingSet);
+        const { cacheKey, metaKey } = getCacheKeys(key);
+        const resolvePending = this.pendingsLayer.createPendingSet(cacheKey);
 
         const prevLruEntry = this.lruClient.get(cacheKey);
 
         try {
             const entry = await pendingEntry;
             const chunks = await readChunks(entry);
-
             const data = Buffer.concat(chunks.map(Buffer.from));
             const size = data.byteLength;
 
-            const lruStream = new ReadableStream({
-                start(controller) {
-                    controller.enqueue(data);
-                    controller.close();
-                },
-            });
+            const [cacheStream, responseStream] = createStreamFromBuffer(data).tee();
+            const lruEntry = { ...entry, value: cacheStream };
 
-            const [cacheStream, responseStream] = lruStream.tee();
+            this.lruClient.set(cacheKey, { entry: lruEntry, size }, { ttl: this.calculateLruTtl(entry.expire) });
 
-            const lruEntry = {
-                ...entry,
-                value: cacheStream,
-            };
-
-            const lruExpire = this.lruTtl === "auto" ? entry.expire * 1000 : this.lruTtl * 1000;
-            this.lruClient.set(
-                cacheKey,
-                {
-                    entry: lruEntry,
-                    size,
-                },
-                { ttl: lruExpire },
+            const pipeline = this.redisClient.pipeline();
+            pipeline.set(cacheKey, data.toString("base64"), "EX", entry.expire);
+            pipeline.set(
+                metaKey,
+                JSON.stringify({
+                    tags: entry.tags,
+                    timestamp: entry.timestamp,
+                    stale: entry.stale,
+                    expire: entry.expire,
+                    revalidate: entry.revalidate,
+                }),
+                "EX",
+                entry.expire,
             );
-
-            await this.redisClient
-                .multi()
-                .set(cacheKey, data.toString("base64"), { expiration: { type: "EX", value: entry.expire } })
-                .set(
-                    `${PREFIX_META}${key}`,
-                    JSON.stringify({
-                        tags: entry.tags,
-                        timestamp: entry.timestamp,
-                        stale: entry.stale,
-                        expire: entry.expire,
-                        revalidate: entry.revalidate,
-                    } as Metadata),
-                    { expiration: { type: "EX", value: entry.expire } },
-                )
-                .exec(true);
+            await pipeline.exec();
 
             resolvePending({ ...lruEntry, value: responseStream });
-            this.logger({
-                type: "SET",
-                status: "REVALIDATED",
-                source: "NEW",
-                key,
-            });
+            this.logOperation("SET", "REVALIDATED", "NEW", key);
         } catch (err) {
             if (prevLruEntry) {
-                const ttl = this.lruTtl === "auto" ? prevLruEntry.entry.expire * 1000 : this.lruTtl * 1000;
-                this.lruClient.set(cacheKey, prevLruEntry, { ttl });
+                this.lruClient.set(cacheKey, prevLruEntry, { ttl: this.calculateLruTtl(prevLruEntry.entry.expire) });
             }
             resolvePending(undefined);
-            this.logger({
-                type: "SET",
-                status: "ERROR",
-                source: "NONE",
-                key,
-            });
+            this.logOperation("SET", "ERROR", "NONE", key);
             throw err;
         } finally {
-            this.pendingSets.delete(cacheKey);
+            this.pendingsLayer.deletePendingSet(cacheKey);
         }
     }
 
     async refreshTags() {
-        //
+        // TODO: should I populate records or records tags from redis into memory cache here?
     }
 
     async getExpiration() {
         return Infinity;
     }
 
+    private updateMetadataForTags(
+        metadata: Metadata,
+        tags: string[],
+        durations: Durations | undefined,
+        now: number,
+    ): Metadata {
+        if (!metadata.tags.some((tag) => tags.includes(tag))) return metadata;
+
+        return {
+            ...metadata,
+            stale: 0,
+            revalidate: durations?.expire ?? 0,
+            expire: Math.max(durations?.expire ?? 0, metadata.expire),
+            timestamp: now,
+        };
+    }
+
     async updateTags(tags: string[], durations?: Durations) {
         if (!tags.length) {
-            this.logger({
-                type: "UPDATE_TAGS",
-                status: "UPDATING",
-                source: "NONE",
-                key: tags.join(","),
-            });
+            this.logOperation("UPDATE_TAGS", "UPDATING", "NONE", tags.join(","));
             return;
         }
-        this.logger({
-            type: "UPDATE_TAGS",
-            status: "UPDATING",
-            source: "REDIS",
-            key: tags.join(","),
-        });
 
-        const pattern = PREFIX_META + "*";
+        const tagsKey = tags.join(",");
+        this.logOperation("UPDATE_TAGS", "UPDATING", "REDIS", tagsKey);
+
+        const pattern = `${PREFIX_META}*`;
         let cursor = "0";
 
         do {
-            const { cursor: nextCursor, keys: metaKeys } = await this.redisClient.scan(cursor, {
-                MATCH: pattern,
-                COUNT: 200,
-            });
+            const [nextCursor, metaKeys] = await this.redisClient.scan(cursor, "MATCH", pattern, "COUNT", 200);
             cursor = nextCursor;
 
-            const getPipeline = this.redisClient.multi<"typed">();
-            metaKeys.forEach((metaKey) => getPipeline.get(metaKey));
-            const getResults: string[] = await getPipeline.exec<"typed">(true);
-            const now = performance.timeOrigin + performance.now();
+            if (metaKeys.length === 0) continue;
 
-            const setPipeline = this.redisClient.multi();
-            getResults.forEach((metadataRaw, index) => {
+            const getPipeline = this.redisClient.pipeline();
+            metaKeys.forEach((metaKey) => getPipeline.get(metaKey));
+            const getResults = await getPipeline.exec();
+
+            const now = performance.timeOrigin + performance.now();
+            const setPipeline = this.redisClient.pipeline();
+
+            getResults?.forEach((result, index) => {
+                if (!result || result[0]) return;
+
                 try {
-                    const metadata: Metadata = JSON.parse(metadataRaw);
-                    if (metadata.tags.some((tag: string) => tags.includes(tag))) {
-                        metadata.stale = 0;
-                        metadata.revalidate = durations?.expire ?? 0;
-                        metadata.expire = Math.max(durations?.expire ?? 0, metadata.expire);
-                        metadata.timestamp = now;
-                        setPipeline.set(metaKeys[index], JSON.stringify(metadata));
+                    const metadata: Metadata = JSON.parse(result[1] as string);
+                    const updated = this.updateMetadataForTags(metadata, tags, durations, now);
+                    if (updated !== metadata) {
+                        setPipeline.set(metaKeys[index], JSON.stringify(updated));
                     }
                 } catch {
-                    // ...
+                    // invalid JSON, ignore in updateTags
                 }
             });
 
-            await setPipeline.exec(true);
+            if (setPipeline.length > 0) {
+                await setPipeline.exec();
+            }
         } while (cursor !== "0");
 
-        this.logger({
-            type: "UPDATE_TAGS",
-            status: "UPDATING",
-            source: "MEMORY",
-            key: tags.join(","),
-        });
+        this.logOperation("UPDATE_TAGS", "UPDATING", "MEMORY", tagsKey);
+        const now = performance.timeOrigin + performance.now();
         this.lruClient.forEach((value, cacheKey, self) => {
-            if (value.entry.tags.some((tag) => tags.includes(tag))) {
-                const now = performance.timeOrigin + performance.now();
-                const lruExpire = this.lruTtl === "auto" ? value.entry.expire * 1000 : this.lruTtl * 1000;
+            const updatedMetadata = this.updateMetadataForTags(value.entry, tags, durations, now);
+            if (updatedMetadata !== value.entry) {
+                const updatedEntry: Entry = { ...value.entry, ...updatedMetadata };
                 self.set(
                     cacheKey,
-                    {
-                        ...value,
-                        entry: {
-                            ...value.entry,
-                            timestamp: now,
-                            stale: 0,
-                            revalidate: durations?.expire ?? 0,
-                            expire: Math.max(durations?.expire ?? 0, value.entry.expire),
-                        },
-                    },
-                    { ttl: lruExpire },
+                    { ...value, entry: updatedEntry },
+                    { ttl: this.calculateLruTtl(updatedEntry.expire) },
                 );
             }
         });

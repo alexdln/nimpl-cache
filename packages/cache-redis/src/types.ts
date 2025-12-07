@@ -1,3 +1,6 @@
+import { RedisOptions } from "ioredis";
+import { LRUCache } from "lru-cache";
+
 export type Durations = {
     expire: number;
 };
@@ -22,10 +25,29 @@ export type LruCacheEntry = {
 };
 
 export type LogData = {
-    type: "GET" | "SET" | "UPDATE_TAGS";
-    status: "HIT" | "MISS" | "ERROR" | "EXPIRED" | "REVALIDATED" | "UPDATING";
+    type: "GET" | "SET" | "UPDATE_TAGS" | "CONNECTION";
+    status:
+        | "HIT"
+        | "MISS"
+        | "ERROR"
+        | "EXPIRED"
+        | "REVALIDATED"
+        | "UPDATING"
+        | "CONNECTING"
+        | "CONNECTED"
+        | "DISCONNECTED"
+        | "RECONNECTING"
+        | "RETRY";
     source: "MEMORY" | "REDIS" | "NEW" | "NONE";
     key: string;
+    message?: string;
 };
 
 export type Logger = (logData: LogData) => void;
+
+export type Options = {
+    lruTtl?: number | "auto";
+    logger?: Logger;
+    redisOptions?: RedisOptions & { url?: string };
+    lruCacheOptions?: LRUCache<string, LruCacheEntry, unknown> | LRUCache.Options<string, LruCacheEntry, unknown>;
+};
