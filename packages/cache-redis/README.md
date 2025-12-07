@@ -56,13 +56,14 @@ The cache handler accepts the following parameters (all optional):
 - `maxSize` (number): Maximum size of the LRU cache in bytes. Default: `50 * 1024 * 1024` (50MB) or value from `LRU_CACHE_MAX_SIZE` env var
 - `ttl` (number | "auto"): Time-to-live for LRU cache entries in seconds. Use `"auto"` to derive TTL from entry expiration. Prefer 0 or minimal values for multi-pod environments. Default: `"auto"`
 - `redisUrl` (string | undefined): Redis connection URL. Default: `process.env.REDIS_URL`
-- `logger` (Logger): Custom logging function that receives a log data object with `type`, `status`, `source`, and `key` properties. Use this to integrate with your logging infrastructure (e.g., structured logging, metrics collection). Default: console logger
+- `logger` (Logger): Custom logging function that receives a log data object with `type`, `status`, `source`, `key`, and optional `message` properties. Use this to integrate with your logging infrastructure (_e.g., structured logging, metrics collection_). Default: custom console logger (_enabled when `NEXT_PRIVATE_DEBUG_CACHE` or `NIC_LOGGER` environment variable is set_)
 
 ### Environment Variables
 
 ```bash
 REDIS_URL=redis://localhost:6379
 LRU_CACHE_MAX_SIZE=50  # Size in MB (default: 50)
+NIC_LOGGER=1
 ```
 
 ## Multi-Pod Support

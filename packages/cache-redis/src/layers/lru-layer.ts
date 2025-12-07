@@ -36,7 +36,7 @@ export class LruLayer {
 
         const { entry, size } = memoryEntry;
         const status = getCacheStatus(entry.timestamp, entry.revalidate, entry.expire);
-        if (status === "expired") return null;
+        if (status === "expire") return null;
 
         const [cacheStream, responseStream] = entry.value.tee();
         entry.value = cacheStream;

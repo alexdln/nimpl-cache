@@ -32,7 +32,7 @@ export type LogData = {
         | "ERROR"
         | "EXPIRED"
         | "REVALIDATED"
-        | "UPDATING"
+        | "REVALIDATING"
         | "CONNECTING"
         | "CONNECTED"
         | "DISCONNECTED"

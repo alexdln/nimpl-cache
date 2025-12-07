@@ -1,6 +1,6 @@
 import Redis from "ioredis";
 
-import { type Options, type Logger, type Metadata, type Entry, Durations } from "../types";
+import { type Options, type Logger, type Metadata, type Entry, type Durations } from "../types";
 import { PREFIX_META } from "../lib/constants";
 import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
 import { createStreamFromBuffer } from "../lib/stream";
@@ -95,7 +95,7 @@ export class RedisLayer {
 
         const metaData: Metadata = JSON.parse(metaEntry);
         const status = getCacheStatus(metaData.timestamp, metaData.revalidate, metaData.expire);
-        if (status === "expired") return null;
+        if (status === "expire") return null;
 
         const redisEntry = await this.redisClient.get(cacheKey);
         if (!redisEntry) {

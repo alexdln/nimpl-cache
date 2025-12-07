@@ -16,11 +16,12 @@ export class CacheHandler {
 
     private logger: Logger;
 
-    constructor({ lruTtl, redisOptions, logger = defaultLogger, lruCacheOptions }: Options = {}) {
-        this.redisLayer = new RedisLayer(redisOptions, logger);
-        this.lruLayer = new LruLayer(lruCacheOptions, logger, lruTtl);
+    constructor({ lruTtl, redisOptions, logger, lruCacheOptions }: Options = {}) {
+        const isLoggerEnabled = logger || process.env.NEXT_PRIVATE_DEBUG_CACHE || process.env.NIC_LOGGER;
+        this.logger = isLoggerEnabled ? logger || defaultLogger : () => {};
 
-        this.logger = logger;
+        this.redisLayer = new RedisLayer(redisOptions, this.logger);
+        this.lruLayer = new LruLayer(lruCacheOptions, this.logger, lruTtl);
     }
 
     private logOperation(
@@ -42,8 +43,8 @@ export class CacheHandler {
         const memoryCache = this.lruLayer.readEntry(key);
         if (memoryCache) {
             this.logOperation("GET", "HIT", "MEMORY", key);
-            if (memoryCache.status === "revalidated") {
-                this.logOperation("GET", "UPDATING", "MEMORY", key);
+            if (memoryCache.status === "revalidate") {
+                this.logOperation("GET", "REVALIDATING", "MEMORY", key);
             }
             return memoryCache.entry;
         }
@@ -86,8 +87,8 @@ export class CacheHandler {
             this.pendingGetsLayer.delete(key);
 
             this.logOperation("GET", "HIT", "REDIS", key);
-            if (status === "revalidated") {
-                this.logOperation("GET", "UPDATING", "REDIS", key);
+            if (status === "revalidate") {
+                this.logOperation("GET", "REVALIDATING", "REDIS", key);
             }
             return responseEntry;
         } catch (err) {
@@ -140,16 +141,16 @@ export class CacheHandler {
 
     async updateTags(tags: string[], durations?: Durations) {
         if (!tags.length) {
-            this.logOperation("UPDATE_TAGS", "UPDATING", "NONE", tags.join(","));
+            this.logOperation("UPDATE_TAGS", "REVALIDATING", "NONE", tags.join(","));
             return;
         }
 
         const tagsKey = tags.join(",");
-        this.logOperation("UPDATE_TAGS", "UPDATING", "REDIS", tagsKey);
+        this.logOperation("UPDATE_TAGS", "REVALIDATING", "REDIS", tagsKey);
 
         await this.redisLayer.updateTags(tags, durations);
 
-        this.logOperation("UPDATE_TAGS", "UPDATING", "MEMORY", tagsKey);
+        this.logOperation("UPDATE_TAGS", "REVALIDATING", "MEMORY", tagsKey);
         this.lruLayer.updateTags(tags, durations);
     }
 }
