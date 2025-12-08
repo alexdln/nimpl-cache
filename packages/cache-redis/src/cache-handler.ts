@@ -51,10 +51,11 @@ export class CacheHandler {
 
         const memoryCache = this.lruLayer.readEntry(key);
         if (memoryCache) {
-            this.logOperation("GET", "HIT", "MEMORY", key);
             if (memoryCache.status === "revalidate") {
                 this.logOperation("GET", "REVALIDATING", "MEMORY", key);
+                return undefined;
             }
+            this.logOperation("GET", "HIT", "MEMORY", key);
             return memoryCache.entry;
         }
 
@@ -102,10 +103,12 @@ export class CacheHandler {
             resolvePending(responseEntry);
             this.pendingGetsLayer.delete(key);
 
-            this.logOperation("GET", "HIT", "REDIS", key);
             if (status === "revalidate") {
                 this.logOperation("GET", "REVALIDATING", "REDIS", key);
+                resolvePending(undefined);
+                return undefined;
             }
+            this.logOperation("GET", "HIT", "REDIS", key);
             return responseEntry;
         } catch (error) {
             this.logOperation("GET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
