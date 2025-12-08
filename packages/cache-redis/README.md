@@ -22,6 +22,8 @@ On cache miss in-memory, the handler fetches from Redis and populates the local 
 
 All cache entries have auto-delete configuration and are removed automatically when they expire. This optimizes memory usage by ensuring stale data is cleaned up and helps prioritize frequently accessed data in both layers.
 
+> **Note**: In serverless environments (e.g., AWS Lambda, Vercel Serverless Functions), the `CacheHandler` instance is typically initialized on each request invocation. This means the in-memory LRU cache layer is reset between requests, making it less effective. In such environments, the cache handler will primarily rely on the Redis layer for caching, and the in-memory cache will only benefit requests within the same function execution context.
+
 > **Note**: Next.js has additional caching layers beyond the cache handler. If the cache handler returns `undefined` (cache miss), Next.js will attempt to read the result from its internal caching solutions and run background revalidation.
 
 ## Installation
@@ -55,10 +57,18 @@ export default nextConfig;
 
 The cache handler accepts the following parameters (all optional):
 
-- `lruTtl` (number | "auto"): Time-to-live for LRU cache entries in seconds. Use `"auto"` to derive TTL from entry expiration. Prefer 0 or minimal values for multi-pod environments. Default: `"auto"`
-- `redisOptions` (RedisOptions & { url?: string }): Redis connection options from `ioredis`. The `url` property can be used to specify the Redis connection URL. Default: `{ url: process.env.REDIS_URL || "redis://localhost:6379" }`
-- `lruOptions` (LRUCache.Options | LRUCache): Options for the LRU cache instance. Use `maxSize` property to set the maximum cache size in bytes. Default: `{ maxSize: 50 * 1024 * 1024 }` (50MB) or value from `LRU_CACHE_MAX_SIZE` env var (in MB)
 - `logger` (Logger): Custom logging function that receives a log data object with `type`, `status`, `source`, `key`, and optional `message` properties. Use this to integrate with your logging infrastructure (_e.g., structured logging, metrics collection_). Default: custom console logger (_enabled when `NEXT_PRIVATE_DEBUG_CACHE` or `NIC_LOGGER` environment variable is set_)
+- `lruTtl` (number | "auto"): Time-to-live for LRU cache entries in seconds. Use `"auto"` to derive TTL from entry expiration. Prefer 0 or minimal values for multi-pod environments. Default: `"auto"`
+- `lruOptions` (LRUCache.Options | LRUCache): Options for the [`LRU cache`](https://www.npmjs.com/package/lru-cache) instance. Use `maxSize` property to set the maximum cache size in bytes. Default: `{ maxSize: 50 * 1024 * 1024 }` (50MB) or value from `LRU_CACHE_MAX_SIZE` env var (in MB)
+- `redisOptions` (RedisOptions & { url?: string; connectionStrategy?: RedisConnectionStrategy }): Redis connection options from [`ioredis`](https://www.npmjs.com/package/ioredis).
+- `redisOptions.url` specify the Redis connection URL. Default: `process.env.REDIS_URL || "redis://localhost:6379"`
+- `redisOptions.connectionStrategy` how the handler behaves when Redis connection fails. Default: `"ignore"`
+  - `"ignore"` (default): The cache handler will immediately proceed without Redis in case of connection problems. In the background, the handler will attempt to reconnect. This mode allows the application to continue operating even if Redis is unavailable.
+  - `"wait-ignore"`: The handler will attempt to connect to Redis, but if unsuccessful, it will proceed without Redis caching. The application continues to function, but without Redis cache benefits.
+  - `"wait-throw"`: The handler will attempt to connect to Redis and throw an error if the connection fails. Next.js will stop working with the handler for the entire process in this case.
+  - `"wait-exit"`: The handler will attempt to connect to Redis and exit the process with code 1 if the connection is unsuccessful.
+
+> **Note**: Next.js has internal caching layers. For static segments this means that even with `wait-throw` or `wait-exit` strategies, users may still receive data from Next.js internal layers before process exit. It's recommended to use these modes with health checks to properly handle this scenario.
 
 ### Environment Variables
 
@@ -140,6 +150,8 @@ export default nextConfig;
 
 The cache handler can be used directly to build custom caching solutions. Import and instantiate `CacheHandler` from `@nimpl/cache-redis/cache-handler`:
 
+> **Note**: Use a singleton pattern if your runtime supports it. In serverless environments the in-memory cache will be reset between invocations, so the handler will primarily use Redis for caching.
+
 ```ts
 import { Readable } from "node:stream";
 import { CacheHandler } from "@nimpl/cache-redis/cache-handler";
@@ -200,6 +212,8 @@ export async function GET() {
 ## Limitations
 
 > **Note**: Currently in Next.js background revalidation doesn't work correctly with dynamic API on page. This limitation exists for all caching solutions, including Next.js default cache-handler
+
+> **Note**: In serverless environments, the `CacheHandler` is initialized on each request, which makes the in-memory LRU cache layer less usable since it's reset between invocations. The cache handler will still function correctly but will primarily rely on Redis for caching in these environments.
 
 ## License
 

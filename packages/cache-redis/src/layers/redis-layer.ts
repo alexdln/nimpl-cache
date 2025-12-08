@@ -1,23 +1,42 @@
 import Redis from "ioredis";
 
-import { type Options, type Logger, type Metadata, type Entry, type Durations } from "../types";
+import {
+    type Options,
+    type Logger,
+    type Metadata,
+    type Entry,
+    type Durations,
+    type RedisConnectionStrategy,
+} from "../types";
 import { PREFIX_META } from "../lib/constants";
 import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
 import { createStreamFromBuffer } from "../lib/stream";
+import { PendingsLayer } from "./pendings-layer";
+import { CacheConnectionError, CacheError } from "../lib/error";
 
 export class RedisLayer {
     private redisClient: Redis;
 
     private logger: Logger;
 
-    private isConnected = false;
+    private connectionStrategy: RedisConnectionStrategy = "wait-throw";
+
+    private connectAttempts = 0;
+
+    private pendingConnectLayer = new PendingsLayer<boolean>();
 
     constructor(redisOptions: Options["redisOptions"], logger: Logger) {
+        const { url, connectionStrategy, ...restOptions } = redisOptions || {};
         this.logger = logger;
-        const { url, ...restOptions } = redisOptions || {};
+        this.connectionStrategy = connectionStrategy || "ignore";
+        let resolvePending: ((value: boolean) => void) | undefined = undefined;
         const redisClient = new Redis(url || "redis://localhost:6379", {
-            retryStrategy: (times) => {
-                if (times > 10) {
+            retryStrategy: () => {
+                if (this.connectAttempts === 0) {
+                    resolvePending = this.pendingConnectLayer.writeEntry("connect");
+                }
+                this.connectAttempts += 1;
+                if (this.connectAttempts > 10) {
                     logger({
                         type: "CONNECTION",
                         status: "ERROR",
@@ -25,30 +44,41 @@ export class RedisLayer {
                         key: "connection",
                         message: "Max reconnection attempts reached",
                     });
+                    this.connectAttempts = 0;
+                    if (resolvePending) {
+                        resolvePending(false);
+                        resolvePending = undefined;
+                        this.pendingConnectLayer.delete("connect");
+                    }
                     return null;
                 }
-                const delay = Math.min(times * 1000, 5000);
+                const delay = Math.min(this.connectAttempts * 1000, 5000);
                 logger({
                     type: "CONNECTION",
                     status: "RECONNECTING",
                     source: "REDIS",
                     key: "connection",
-                    message: `Reconnecting in ${delay}ms (attempt ${times})`,
+                    message: `Reconnecting in ${delay}ms (attempt ${this.connectAttempts})`,
                 });
                 return delay;
             },
             maxRetriesPerRequest: 3,
+            lazyConnect: true,
             ...restOptions,
         });
 
         redisClient.on("connect", () => {
             this.logger({ type: "CONNECTION", status: "CONNECTED", source: "REDIS", key: "connection" });
-            this.isConnected = true;
+            this.connectAttempts = 0;
+            if (resolvePending) {
+                resolvePending(true);
+                resolvePending = undefined;
+                this.pendingConnectLayer.delete("connect");
+            }
         });
 
         redisClient.on("ready", () => {
             this.logger({ type: "CONNECTION", status: "CONNECTED", source: "REDIS", key: "connection" });
-            this.isConnected = true;
         });
 
         redisClient.on("error", (err) => {
@@ -59,23 +89,53 @@ export class RedisLayer {
                 key: "connection",
                 message: err.message,
             });
-            this.isConnected = false;
         });
 
         redisClient.on("reconnecting", () => {
             this.logger({ type: "CONNECTION", status: "RECONNECTING", source: "REDIS", key: "connection" });
-            this.isConnected = false;
         });
 
         redisClient.on("close", () => {
             this.logger({ type: "CONNECTION", status: "DISCONNECTED", source: "REDIS", key: "connection" });
-            this.isConnected = false;
         });
 
         this.redisClient = redisClient;
     }
 
+    private async connect() {
+        if (this.redisClient.status === "connect" || this.redisClient.status === "ready") return true;
+
+        const activeConnectionPromise = this.pendingConnectLayer.readEntry("connect");
+
+        if (this.connectionStrategy === "ignore") {
+            if (!activeConnectionPromise) this.redisClient.connect().catch(() => false);
+            return false;
+        }
+
+        const activeConnection = await activeConnectionPromise;
+
+        if (activeConnection === true) return activeConnection;
+
+        if (activeConnection === undefined) {
+            await this.redisClient.connect().catch(() => false);
+            await this.pendingConnectLayer.readEntry("connect");
+        }
+        // @ts-expect-error check after reconnection
+        const isConnected = this.redisClient.status === "connect" || this.redisClient.status === "ready";
+
+        if (!isConnected) {
+            if (this.connectionStrategy === "wait-throw") throw new CacheConnectionError("Failed to connect to Redis");
+            if (this.connectionStrategy === "wait-exit") process.exit(1);
+            return false;
+        }
+
+        return isConnected;
+    }
+
     async clean(rule: RegExp | string) {
+        const connected = await this.connect();
+        if (!connected) return undefined;
+
         if (rule === "*") return this.redisClient.flushall();
 
         let cursor = "0";
@@ -96,10 +156,13 @@ export class RedisLayer {
     }
 
     checkIsReady() {
-        return this.isConnected;
+        return this.redisClient.status === "ready";
     }
 
     async readEntry(key: string) {
+        const connected = await this.connect();
+        if (!connected) return undefined;
+
         const { cacheKey, metaKey } = getCacheKeys(key);
         const metaEntry = await this.redisClient.get(metaKey);
         if (!metaEntry) return undefined;
@@ -123,6 +186,9 @@ export class RedisLayer {
     }
 
     async writeEntry(key: string, { entry }: { entry: Metadata & { value: Buffer<ArrayBuffer> } }) {
+        const connected = await this.connect();
+        if (!connected) return;
+
         const { cacheKey, metaKey } = getCacheKeys(key);
         const pipeline = this.redisClient.pipeline();
         pipeline.set(cacheKey, entry.value.toString("base64"), "EX", entry.expire);
@@ -138,10 +204,17 @@ export class RedisLayer {
             "EX",
             entry.expire,
         );
-        await pipeline.exec();
+        const results = await pipeline.exec();
+        const error = results?.find((result) => result?.[0])?.[0];
+        if (error) {
+            throw new CacheError(error instanceof Error ? error.message : "Failed to write entry to Redis");
+        }
     }
 
     async updateTags(tags: string[], durations?: Durations) {
+        const connected = await this.connect();
+        if (!connected) return;
+
         const pattern = `${PREFIX_META}*`;
         let cursor = "0";
 
@@ -173,12 +246,19 @@ export class RedisLayer {
             });
 
             if (setPipeline.length > 0) {
-                await setPipeline.exec();
+                const results = await setPipeline.exec();
+                const error = results?.find((result) => result?.[0])?.[0];
+                if (error) {
+                    throw new CacheError(error instanceof Error ? error.message : "Failed to update tags in Redis");
+                }
             }
         } while (cursor !== "0");
     }
 
     async delete(key: string) {
+        const connected = await this.connect();
+        if (!connected) return;
+
         const { cacheKey, metaKey } = getCacheKeys(key);
         await this.redisClient.del(cacheKey, metaKey);
     }

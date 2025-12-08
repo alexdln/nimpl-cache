@@ -4,15 +4,16 @@ import { logger as defaultLogger } from "./lib/logger";
 import { RedisLayer } from "./layers/redis-layer";
 import { LruLayer } from "./layers/lru-layer";
 import { PendingsLayer } from "./layers/pendings-layer";
+import { CacheError } from "./lib/error";
 
 export class CacheHandler {
     private lruLayer: LruLayer;
 
     private redisLayer: RedisLayer;
 
-    private pendingGetsLayer = new PendingsLayer();
+    private pendingGetsLayer = new PendingsLayer<Entry | undefined | null>();
 
-    private pendingSetsLayer = new PendingsLayer();
+    private pendingSetsLayer = new PendingsLayer<Entry | undefined | null>();
 
     private logger: Logger;
 
@@ -29,8 +30,9 @@ export class CacheHandler {
         status: LogData["status"],
         source: LogData["source"],
         key: string,
+        message?: string,
     ): void {
-        this.logger({ type, status, source, key });
+        this.logger({ type, status, source, key, message });
     }
 
     checkIsReady() {
@@ -39,9 +41,12 @@ export class CacheHandler {
 
     async get(key: string) {
         const pendingSet = await this.pendingSetsLayer.readEntry(key);
-        if (pendingSet !== undefined) {
+        if (pendingSet === null) return undefined;
+        if (pendingSet) {
             this.logOperation("GET", "REVALIDATED", "NEW", key);
-            return pendingSet;
+            const [cacheStream, responseStream] = pendingSet.value.tee();
+            pendingSet.value = cacheStream;
+            return { ...pendingSet, value: responseStream };
         }
 
         const memoryCache = this.lruLayer.readEntry(key);
@@ -54,9 +59,15 @@ export class CacheHandler {
         }
 
         const pendingGet = await this.pendingGetsLayer.readEntry(key);
-        if (pendingGet !== undefined) {
-            this.logOperation("GET", pendingGet ? "HIT" : "MISS", pendingGet ? "REDIS" : "NONE", key);
-            return pendingGet;
+        if (pendingGet === null) {
+            this.logOperation("GET", "MISS", "NONE", key);
+            return undefined;
+        }
+        if (pendingGet) {
+            this.logOperation("GET", "HIT", "REDIS", key);
+            const [cacheStream, responseStream] = pendingGet.value.tee();
+            pendingGet.value = cacheStream;
+            return { ...pendingGet, value: responseStream };
         }
 
         const resolvePending = this.pendingGetsLayer.writeEntry(key);
@@ -77,6 +88,7 @@ export class CacheHandler {
                     key,
                 );
                 resolvePending(null);
+                this.pendingGetsLayer.delete(key);
                 return undefined;
             }
 
@@ -95,11 +107,12 @@ export class CacheHandler {
                 this.logOperation("GET", "REVALIDATING", "REDIS", key);
             }
             return responseEntry;
-        } catch (err) {
-            this.logOperation("GET", "ERROR", "REDIS", key);
+        } catch (error) {
+            this.logOperation("GET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
             resolvePending(null);
             this.pendingGetsLayer.delete(key);
-            throw err;
+
+            if (error instanceof CacheError) throw error;
         }
     }
 
@@ -123,13 +136,11 @@ export class CacheHandler {
 
             resolvePending({ ...lruEntry, value: responseStream });
             this.logOperation("SET", "REVALIDATED", "NEW", key);
-        } catch (err) {
-            if (prevLruEntry) {
-                this.lruLayer.writeEntry(key, prevLruEntry);
-            }
+        } catch (error) {
             resolvePending(undefined);
-            this.logOperation("SET", "ERROR", "NONE", key);
-            throw err;
+            this.logOperation("SET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
+            if (prevLruEntry) this.lruLayer.writeEntry(key, prevLruEntry);
+            if (error instanceof CacheError) throw error;
         } finally {
             this.pendingSetsLayer.delete(key);
         }
@@ -152,9 +163,19 @@ export class CacheHandler {
         const tagsKey = tags.join(",");
         this.logOperation("UPDATE_TAGS", "REVALIDATING", "REDIS", tagsKey);
 
-        await this.redisLayer.updateTags(tags, durations);
-
-        this.logOperation("UPDATE_TAGS", "REVALIDATING", "MEMORY", tagsKey);
+        try {
+            await this.redisLayer.updateTags(tags, durations);
+            this.logOperation("UPDATE_TAGS", "REVALIDATING", "MEMORY", tagsKey);
+        } catch (error) {
+            this.logOperation(
+                "UPDATE_TAGS",
+                "ERROR",
+                "REDIS",
+                tagsKey,
+                error instanceof Error ? error.message : undefined,
+            );
+            if (error instanceof CacheError) throw error;
+        }
         this.lruLayer.updateTags(tags, durations);
     }
 }
