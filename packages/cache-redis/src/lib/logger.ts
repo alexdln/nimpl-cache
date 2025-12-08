@@ -40,6 +40,6 @@ export const logger = (logData: LogData) => {
     const message = logData.message ? chalk.gray(`\n  ${chalk.white("└─")} ${logData.message}`) : "";
 
     console.log(
-        `${typeLabel} ${statusLabel} ${chalk.gray("from")} ${sourceLabel} ${chalk.gray("for")} ${keyLabel}${message}`,
+        `${typeLabel} ${statusLabel} ${chalk.gray("at")} ${sourceLabel} ${chalk.gray("for")} ${keyLabel}${message}`,
     );
 };
