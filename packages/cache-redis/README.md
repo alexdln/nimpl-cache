@@ -211,9 +211,9 @@ export async function GET() {
 
 ## Limitations
 
-> **Note**: Currently in Next.js background revalidation doesn't work correctly with dynamic API on page. This limitation exists for all caching solutions, including Next.js default cache-handler
+Currently in Next.js background revalidation doesn't work correctly with dynamic API on page. This limitation exists for all caching solutions, including Next.js default cache-handler
 
-> **Note**: In serverless environments, the `CacheHandler` is initialized on each request, which makes the in-memory LRU cache layer less usable since it's reset between invocations. The cache handler will still function correctly but will primarily rely on Redis for caching in these environments.
+In serverless environments, the `CacheHandler` is initialized on each request, which makes the in-memory LRU cache layer less usable since it's reset between invocations. The cache handler will still function correctly but will primarily rely on Redis for caching in these environments.
 
 ## License
 

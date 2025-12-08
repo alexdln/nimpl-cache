@@ -1,7 +1,7 @@
 {
   "name": "@nimpl/cache-redis",
   "version": "0.0.1",
-  "description": "",
+  "description": "Redis-based cache handler. Designed for Next.js but can be used to build custom caching solutions for any other stack",
   "keywords": [
     "next",
     "nextjs",
@@ -46,14 +46,14 @@
     "email": "dev@alexdln.com",
     "url": "https://github.com/alexdln/"
   },
+  "dependencies": {
+    "chalk": "4.1.2",
+    "ioredis": "5.8.2",
+    "lru-cache": "11.2.4"
+  },
   "devDependencies": {
     "@types/node": "24.10.1",
     "typescript": "5.9.3"
   },
-  "license": "MIT",
-  "dependencies": {
-    "chalk": "5.6.2",
-    "ioredis": "5.8.2",
-    "lru-cache": "11.2.4"
-  }
+  "license": "MIT"
 }

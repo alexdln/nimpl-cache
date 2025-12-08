@@ -1,0 +1,50 @@
+name: Publish @nimpl/cache-redis
+
+on:
+  push:
+    tags:
+      - nimpl/cache-redis@*
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: olegtarasov/get-tag@v2.1.3
+        id: tagName
+        with:
+          tagRegex: "nimpl/cache-redis@(?<version>.*)"
+
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install deps and Build package
+        run: |
+          pnpm install
+          pnpm run build
+          cp ../../LICENSE .
+        working-directory: ./packages/cache-redis
+
+      - name: Publish on main
+        if: "!contains(github.ref_name, 'canary')"
+        run: |
+          npm set //registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}
+          npm version --no-git-tag-version ${{steps.tagName.outputs.version}}
+          npm publish --access public
+        working-directory: ./packages/cache-redis
+
+      - name: Publish on canary
+        if: contains(github.ref_name, 'canary')
+        run: |
+          npm set //registry.npmjs.org/:_authToken=${{secrets.NPM_TOKEN}}
+          npm version --no-git-tag-version ${{steps.tagName.outputs.version}}
+          npm publish --tag canary --access public
+        working-directory: ./packages/cache-redis

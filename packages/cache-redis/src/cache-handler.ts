@@ -51,10 +51,11 @@ export class CacheHandler {
 
         const memoryCache = this.lruLayer.readEntry(key);
         if (memoryCache) {
-            this.logOperation("GET", "HIT", "MEMORY", key);
             if (memoryCache.status === "revalidate") {
                 this.logOperation("GET", "REVALIDATING", "MEMORY", key);
+                return undefined;
             }
+            this.logOperation("GET", "HIT", "MEMORY", key);
             return memoryCache.entry;
         }
 
@@ -99,13 +100,15 @@ export class CacheHandler {
             this.lruLayer.writeEntry(key, redisCache);
 
             const responseEntry = { ...entry, value: responseStream };
-            resolvePending(responseEntry);
             this.pendingGetsLayer.delete(key);
 
-            this.logOperation("GET", "HIT", "REDIS", key);
             if (status === "revalidate") {
                 this.logOperation("GET", "REVALIDATING", "REDIS", key);
+                resolvePending(undefined);
+                return undefined;
             }
+            resolvePending(responseEntry);
+            this.logOperation("GET", "HIT", "REDIS", key);
             return responseEntry;
         } catch (error) {
             this.logOperation("GET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
@@ -119,19 +122,17 @@ export class CacheHandler {
     async set(key: string, pendingEntry: Promise<Entry>) {
         const resolvePending = this.pendingSetsLayer.writeEntry(key);
 
-        const prevLruEntry = this.lruLayer.read(key);
+        const entry = await pendingEntry;
+        const chunks = await readChunks(entry);
+        const data = Buffer.concat(chunks.map(Buffer.from));
+        const size = data.byteLength;
+
+        const [cacheStream, responseStream] = createStreamFromBuffer(data).tee();
+        const lruEntry = { ...entry, value: cacheStream };
+
+        this.lruLayer.writeEntry(key, { entry: lruEntry, size });
 
         try {
-            const entry = await pendingEntry;
-            const chunks = await readChunks(entry);
-            const data = Buffer.concat(chunks.map(Buffer.from));
-            const size = data.byteLength;
-
-            const [cacheStream, responseStream] = createStreamFromBuffer(data).tee();
-            const lruEntry = { ...entry, value: cacheStream };
-
-            this.lruLayer.writeEntry(key, { entry: lruEntry, size });
-
             await this.redisLayer.writeEntry(key, { entry: { ...entry, value: data } });
 
             resolvePending({ ...lruEntry, value: responseStream });
@@ -139,7 +140,6 @@ export class CacheHandler {
         } catch (error) {
             resolvePending(undefined);
             this.logOperation("SET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
-            if (prevLruEntry) this.lruLayer.writeEntry(key, prevLruEntry);
             if (error instanceof CacheError) throw error;
         } finally {
             this.pendingSetsLayer.delete(key);
