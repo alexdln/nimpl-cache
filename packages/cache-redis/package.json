@@ -47,7 +47,7 @@
     "url": "https://github.com/alexdln/"
   },
   "dependencies": {
-    "chalk": "5.6.2",
+    "chalk": "4.1.2",
     "ioredis": "5.8.2",
     "lru-cache": "11.2.4"
   },
