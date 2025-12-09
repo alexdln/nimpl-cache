@@ -1,5 +1,6 @@
 import { RedisOptions } from "ioredis";
 import { LRUCache } from "lru-cache";
+import { ReadableStream as WebReadableStream } from "node:stream/web";
 
 export type Durations = {
     expire: number;
@@ -14,7 +15,7 @@ export type Metadata = {
 };
 
 export type Entry = Metadata & {
-    value: ReadableStream;
+    value: ReadableStream | WebReadableStream;
 };
 
 export type RedisCacheEntry = string;

@@ -125,7 +125,7 @@ export class CacheHandler {
         const entry = await pendingEntry;
         const chunks = await readChunks(entry);
         const data = Buffer.concat(chunks.map(Buffer.from));
-        const size = data.byteLength;
+        const size = data.byteLength || 1;
 
         const [cacheStream, responseStream] = createStreamFromBuffer(data).tee();
         const lruEntry = { ...entry, value: cacheStream };

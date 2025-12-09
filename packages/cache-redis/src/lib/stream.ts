@@ -1,4 +1,6 @@
-export const readChunks = async (entry: { value: ReadableStream }) => {
+import { type Entry } from "../types";
+
+export const readChunks = async (entry: Pick<Entry, "value">) => {
     const reader = entry.value.getReader();
     const chunks = [];
 
