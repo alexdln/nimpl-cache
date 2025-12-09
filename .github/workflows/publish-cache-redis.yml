@@ -33,6 +33,10 @@ jobs:
           cp ../../LICENSE .
         working-directory: ./packages/cache-redis
 
+      - name: Run tests
+        run: |
+          pnpm --filter cache-tests test
+
       - name: Publish on main
         if: "!contains(github.ref_name, 'canary')"
         run: |

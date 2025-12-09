@@ -1,5 +1,5 @@
 {
-  "name": "next-impl-cache-tests",
+  "name": "cache-tests",
   "version": "1.0.0",
   "description": "",
   "private": true,
@@ -23,4 +23,3 @@
   },
   "license": "MIT"
 }
-

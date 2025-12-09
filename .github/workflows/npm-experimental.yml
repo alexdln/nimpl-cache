@@ -1,0 +1,77 @@
+name: Publish experimental package
+
+on:
+  pull_request:
+    types: [opened, synchronize]
+
+jobs:
+  publish-experimental:
+    runs-on: ubuntu-latest
+
+    if: |
+      github.event.pull_request.head.repo.full_name == github.repository &&
+      ${{ github.head_ref != 'main' && !startsWith(github.head_ref, 'canary') }}
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v5
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+
+      - name: Install pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Build packages
+        run: |
+          for package in packages/*/; do
+            echo "Building package: $package"
+            cd "$package"
+            pnpm run build
+            cp ../../LICENSE .
+            cd - > /dev/null
+          done
+
+      - name: Run tests
+        run: |
+          pnpm --filter cache-tests test
+
+      - name: Compute experimental version
+        id: version
+        run: |
+          HASH=$(git rev-parse --short HEAD)
+          echo "version=0.0.0-experimental-${HASH}" >> $GITHUB_OUTPUT
+
+      - name: Check if versions already published
+        id: check
+        run: |
+          VERSION=${{ steps.version.outputs.version }}
+          ADAPTER_EXISTS=$(npm view @nimpl/cache-adapter@$VERSION version 2>/dev/null || true)
+          IN_MEMORY_EXISTS=$(npm view @nimpl/cache-in-memory@$VERSION version 2>/dev/null || true)
+          REDIS_EXISTS=$(npm view @nimpl/cache-redis@$VERSION version 2>/dev/null || true)
+
+          if [ -z "$ADAPTER_EXISTS" ] || [ -z "$IN_MEMORY_EXISTS" ] || [ -z "$REDIS_EXISTS" ]; then
+            echo "publish=true" >> $GITHUB_OUTPUT
+          else
+            echo "publish=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Publish experimental packages
+        if: steps.check.outputs.publish == 'true'
+        env:
+          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: |
+          npm set //registry.npmjs.org/:_authToken=$NPM_TOKEN
+          VERSION=${{ steps.version.outputs.version }}
+          for package in packages/*/; do
+            echo "Publishing package: $package"
+            cd "$package"
+            npm version --no-git-tag-version $VERSION
+            npm publish --tag experimental --access public
+            cd - > /dev/null
+          done
