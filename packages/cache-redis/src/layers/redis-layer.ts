@@ -25,6 +25,10 @@ export class RedisLayer {
 
     private pendingConnectLayer = new PendingsLayer<boolean>();
 
+    private pendingGetKeysLayer = new PendingsLayer<string[]>();
+
+    private pendingReadEntryLayer = new PendingsLayer<{ entry: Entry; size: number; status: string } | undefined>();
+
     constructor(redisOptions: Options["redisOptions"], logger: Logger) {
         const { url, connectionStrategy, ...restOptions } = redisOptions || {};
         this.logger = logger;
@@ -163,6 +167,11 @@ export class RedisLayer {
         const connected = await this.connect();
         if (!connected) return undefined;
 
+        const activeReadEntryPromise = this.pendingReadEntryLayer.readEntry(key);
+        if (activeReadEntryPromise) return activeReadEntryPromise;
+
+        const resolvePending = this.pendingReadEntryLayer.writeEntry(key);
+
         const { cacheKey, metaKey } = getCacheKeys(key);
         const metaEntry = await this.redisClient.get(metaKey);
         if (!metaEntry) return undefined;
@@ -182,7 +191,9 @@ export class RedisLayer {
             value: createStreamFromBuffer(buffer),
         });
 
-        return { entry, size: buffer.byteLength, status };
+        const cacheEntry = { entry, size: buffer.byteLength, status };
+        resolvePending(cacheEntry);
+        return cacheEntry;
     }
 
     async writeEntry(key: string, { entry }: { entry: Metadata & { value: Buffer<ArrayBuffer> } }) {
@@ -267,6 +278,11 @@ export class RedisLayer {
         const connected = await this.connect();
         if (!connected) return [];
 
+        const activeGetKeysPromise = this.pendingGetKeysLayer.readEntry("keys");
+        if (activeGetKeysPromise) return activeGetKeysPromise;
+
+        const resolvePending = this.pendingGetKeysLayer.writeEntry("keys");
+
         const pattern = `${PREFIX_META}*`;
         const keys: string[] = [];
         let cursor = "0";
@@ -278,6 +294,8 @@ export class RedisLayer {
             const originalKeys = metaKeys.map((metaKey) => metaKey.replace(PREFIX_META, ""));
             keys.push(...originalKeys);
         } while (cursor !== "0");
+
+        resolvePending(keys);
 
         return keys;
     }
