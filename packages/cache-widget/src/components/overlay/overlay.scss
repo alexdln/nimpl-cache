@@ -1,0 +1,23 @@
+.__ncw_overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: transparent;
+    z-index: 9999;
+    backdrop-filter: blur(0);
+    pointer-events: none;
+    transition: background 0.3s ease-in-out, backdrop-filter 0.3s ease-in-out;
+}
+
+.__ncw_overlay_visible {
+    pointer-events: auto;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.__ncw_overlay_transparent {
+    background: transparent;
+    backdrop-filter: blur(0);
+}

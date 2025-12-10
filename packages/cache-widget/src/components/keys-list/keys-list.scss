@@ -1,0 +1,29 @@
+.__ncw_keys-list {
+    width: 300px;
+    border-right: 1px solid #e5e7eb;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-top-left-radius: 12px;
+    border-bottom-left-radius: 12px;
+    overflow: hidden;
+}
+
+.__ncw_keys-list-title {
+    padding: 16px 20px;
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.__ncw_keys-list-empty {
+    display: block;
+    padding: 16px 20px;
+}
+
+.__ncw_keys-list-items {
+    flex: 1;
+    overflow-y: auto;
+}

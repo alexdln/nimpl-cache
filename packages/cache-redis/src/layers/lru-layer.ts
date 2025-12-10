@@ -77,4 +77,12 @@ export class LruLayer {
             }
         });
     }
+
+    getKeys(): string[] {
+        const keys: string[] = [];
+        this.lruClient.forEach((_, key) => {
+            keys.push(key);
+        });
+        return keys;
+    }
 }

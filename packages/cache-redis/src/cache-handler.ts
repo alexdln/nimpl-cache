@@ -7,9 +7,9 @@ import { PendingsLayer } from "./layers/pendings-layer";
 import { CacheError } from "./lib/error";
 
 export class CacheHandler {
-    private lruLayer: LruLayer;
+    lruLayer: LruLayer;
 
-    private redisLayer: RedisLayer;
+    redisLayer: RedisLayer;
 
     private pendingGetsLayer = new PendingsLayer<Entry | undefined | null>();
 
@@ -177,5 +177,12 @@ export class CacheHandler {
             if (error instanceof CacheError) throw error;
         }
         this.lruLayer.updateTags(tags, durations);
+    }
+
+    async getKeys(): Promise<{ redisKeys: string[]; lruKeys: string[] }> {
+        const redisKeys = await this.redisLayer.getKeys();
+        const lruKeys = this.lruLayer.getKeys();
+
+        return { redisKeys, lruKeys };
     }
 }

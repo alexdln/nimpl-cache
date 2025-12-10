@@ -262,4 +262,23 @@ export class RedisLayer {
         const { cacheKey, metaKey } = getCacheKeys(key);
         await this.redisClient.del(cacheKey, metaKey);
     }
+
+    async getKeys(): Promise<string[]> {
+        const connected = await this.connect();
+        if (!connected) return [];
+
+        const pattern = `${PREFIX_META}*`;
+        const keys: string[] = [];
+        let cursor = "0";
+
+        do {
+            const [nextCursor, metaKeys] = await this.redisClient.scan(cursor, "MATCH", pattern, "COUNT", 1000);
+            cursor = nextCursor;
+
+            const originalKeys = metaKeys.map((metaKey) => metaKey.replace(PREFIX_META, ""));
+            keys.push(...originalKeys);
+        } while (cursor !== "0");
+
+        return keys;
+    }
 }
