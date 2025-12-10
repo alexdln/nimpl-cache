@@ -1,0 +1,27 @@
+.__ncw_value-button {
+    border: none;
+    padding: 10px 16px;
+    cursor: pointer;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s;
+    background: none;
+
+    &:hover {
+        text-decoration: underline dotted;
+    }
+}
+
+.__ncw_value-display {
+    background: #1f2937;
+    color: #10b981;
+    padding: 16px;
+    margin: 0;
+    overflow-x: auto;
+    font-size: 14px;
+    line-height: 1.5;
+    font-family: "Monaco", "Menlo", "Ubuntu Mono", monospace;
+    white-space: pre-wrap;
+    word-break: break-all;
+}
