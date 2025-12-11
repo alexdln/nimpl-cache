@@ -14,26 +14,55 @@ pnpm add @nimpl/cache-widget
 
 ### 1. Create an API Route
 
-Create an API route in your Next.js app to serve cache data:
+You have two options for creating the API route, depending on whether you're using the default cache handler instance or a custom one:
+
+**With Default Cache Handler Instance**
+
+If you're using the default instance of `@nimpl/cache-redis`, use the `route` helper:
 
 ```ts
-// app/api/cache-widget/route.ts (or pages/api/cache-widget.ts)
-import { getCacheWidgetData } from "@nimpl/cache-widget/cache-handler";
+// app/api/cache-widget/[[...segments]]/route.ts
+import { getCacheData } from "@nimpl/cache-widget/route";
 import { NextResponse } from "next/server";
 
-export async function GET() {
-  try {
-    const data = await getCacheWidgetData();
-    return NextResponse.json(data);
-  } catch (error) {
-    return NextResponse.json(
-      {
-        error:
-          error instanceof Error ? error.message : "Failed to fetch cache data",
-      },
-      { status: 500 }
-    );
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ segments?: string[] }> }
+) {
+  const { segments } = await params;
+  const data = await getCacheData(segments);
+
+  if (!data) {
+    return new Response("", { status: 404 });
   }
+
+  return new Response(JSON.stringify(data));
+}
+```
+
+**With Custom Cache Handler Instance**
+
+If you've created a custom cache handler instance with custom configuration, use the `custom-route` helper:
+
+```ts
+// app/api/cache-widget/[[...segments]]/route.ts
+import { getCacheData } from "@nimpl/cache-widget/custom-route";
+import { connection } from "next/server";
+
+const cacheHandler = require("../../../../../cache-handler.js");
+
+export async function GET(
+  _request: Request,
+  { params }: { params: Promise<{ segments?: string[] }> }
+) {
+  const { segments } = await params;
+  const data = await getCacheData(cacheHandler, segments);
+
+  if (!data) {
+    return new Response("", { status: 404 });
+  }
+
+  return new Response(JSON.stringify(data));
 }
 ```
 
@@ -44,6 +73,7 @@ Add the `CacheWidget` component to your root layout or any page:
 ```tsx
 // app/layout.tsx
 import { CacheWidget } from "@nimpl/cache-widget";
+import "@nimpl/cache-widget/styles.css";
 
 export default function RootLayout({
   children,
@@ -67,17 +97,6 @@ You can customize the API endpoint URL:
 
 ```tsx
 <CacheWidget apiUrl="/api/custom-cache-endpoint" />
-```
-
-## API Helper
-
-The `getCacheWidgetData` function can be used in any API route to fetch cache information:
-
-```ts
-import { getCacheWidgetData } from "@nimpl/cache-widget/cache-handler";
-
-const data = await getCacheWidgetData();
-// Returns: { keys: string[], keyDetails: Record<string, CacheKeyInfo> }
 ```
 
 ## License
