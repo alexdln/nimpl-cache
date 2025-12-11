@@ -11,10 +11,11 @@ import "./details.scss";
 
 interface DetailsProps {
     selectedKey: string | null;
+    setSelectedKey: (key: string | null) => void;
     apiUrl: string;
 }
 
-export const Details: React.FC<DetailsProps> = ({ selectedKey, apiUrl }) => {
+export const Details: React.FC<DetailsProps> = ({ selectedKey, setSelectedKey, apiUrl }) => {
     const { data, loading, error, fetch, reset } = useFetch<CacheKeyInfo>(`${apiUrl}/${selectedKey}`);
 
     useEffect(() => {
@@ -26,8 +27,21 @@ export const Details: React.FC<DetailsProps> = ({ selectedKey, apiUrl }) => {
     }, [selectedKey, fetch]);
 
     return (
-        <div className="__ncw_details">
-            <h3 className="__ncw_details-title">Key Details</h3>
+        <div className={`__ncw_details ${selectedKey ? "__ncw_details-selected" : ""}`}>
+            <div className="__ncw_details-header">
+                <button className="__ncw_details-title-button" onClick={() => setSelectedKey(null)}>
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path
+                            d="M15 18L9 12L15 6"
+                            stroke="currentColor"
+                            strokeWidth="2"
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                        />
+                    </svg>
+                </button>
+                <h3 className="__ncw_details-title">Key Details</h3>
+            </div>
             <div className="__ncw_details-content">
                 <table className="__ncw_details-table">
                     <tbody>

@@ -51,7 +51,7 @@ export const CacheWidget: React.FC<CacheWidgetProps> = ({ apiUrl = "/api/cache-w
                     {!loading && !error && keys && (
                         <>
                             <KeysList keys={keys} selectedKey={selectedKey} onKeyClick={handleKeyClick} />
-                            <Details selectedKey={selectedKey} apiUrl={apiUrl} />
+                            <Details selectedKey={selectedKey} setSelectedKey={setSelectedKey} apiUrl={apiUrl} />
                         </>
                     )}
                 </Content>

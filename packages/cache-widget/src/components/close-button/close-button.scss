@@ -14,4 +14,16 @@
     &:hover {
         background: #2b2828;
     }
+
+    @media (max-width: 768px) {
+        top: 8px;
+        right: 8px;
+        background: none;
+        color: black;
+
+        &:hover {
+            background: none;
+            color: #414141;
+        }
+    }
 }
