@@ -39,6 +39,12 @@ Set the Redis connection URL:
 REDIS_URL=redis://localhost:6379
 ```
 
+## @nimpl/cache-widget
+
+`@nimpl/cache-widget` is a React widget for visualizing and inspecting cache entries from `@nimpl/cache-redis`. It provides a user-friendly interface to view cache keys, their details, and metadata in your application.
+
+[Read more about @nimpl/cache-widget](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-widget)
+
 ## Legacy Packages
 
 > **Note**: The following packages are outdated and not actively maintained for now. They will be updated and improved soon:

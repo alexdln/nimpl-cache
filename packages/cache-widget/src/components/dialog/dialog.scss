@@ -15,7 +15,7 @@
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
     display: flex;
     flex-direction: column;
-    z-index: 10000;
+    z-index: 9999999;
 
     @media (max-width: 768px) {
         width: 100%;
