@@ -5,7 +5,7 @@
     right: 0;
     bottom: 0;
     background: transparent;
-    z-index: 9999;
+    z-index: 9999999;
     backdrop-filter: blur(0);
     pointer-events: none;
     transition: background 0.3s ease-in-out, backdrop-filter 0.3s ease-in-out;

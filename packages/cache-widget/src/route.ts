@@ -1,61 +1,13 @@
 import cacheHandler from "@nimpl/cache-redis";
 
-import { type CacheKeyInfo, type KeysData } from "./lib/types";
-import { readStream } from "./lib/stream";
+import {
+    getKeys as getKeysBase,
+    getKeyDetails as getKeyDetailsBase,
+    getCacheData as getCacheDataBase,
+} from "./custom-route";
 
-export const getKeys = async (): Promise<KeysData> => {
-    const keys = await cacheHandler.redisLayer.getKeys();
-    return keys;
-};
+export const getKeys = () => getKeysBase(cacheHandler);
 
-export const getKeyDetails = async (key: string): Promise<CacheKeyInfo> => {
-    try {
-        const cacheEntry = await cacheHandler.redisLayer.readEntry(key);
+export const getKeyDetails = (key: string) => getKeyDetailsBase(cacheHandler, key);
 
-        if (!cacheEntry) {
-            return {
-                key,
-                metadata: null,
-                value: null,
-                size: 0,
-                status: null,
-            };
-        }
-
-        const { entry, size, status } = cacheEntry;
-        const [cacheStream, responseStream] = entry.value.tee();
-        entry.value = cacheStream;
-        const buffer = await readStream(responseStream);
-        let value: string | null = null;
-
-        try {
-            value = buffer.toString("utf-8");
-        } catch {
-            // If it's not valid UTF-8, represent as base64 or hex
-            value = buffer.toString("base64");
-        }
-
-        return {
-            key,
-            metadata: {
-                tags: entry.tags,
-                timestamp: entry.timestamp,
-                stale: entry.stale,
-                revalidate: entry.revalidate,
-                expire: entry.expire,
-            },
-            value,
-            size,
-            status,
-        };
-    } catch (error) {
-        return {
-            key,
-            metadata: null,
-            value: null,
-            size: 0,
-            error: error instanceof Error ? error.message : "Unknown error",
-            status: null,
-        };
-    }
-};
+export const getCacheData = (segments?: string[]) => getCacheDataBase(cacheHandler, segments);

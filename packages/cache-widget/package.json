@@ -31,6 +31,12 @@
       "require": "./dist/cjs/route.js",
       "default": "./dist/cjs/route.js"
     },
+    "./custom-route": {
+      "types": "./dist/cjs/custom-route.d.ts",
+      "import": "./dist/esm/custom-route.js",
+      "require": "./dist/cjs/custom-route.js",
+      "default": "./dist/cjs/custom-route.js"
+    },
     "./styles.css": {
       "default": "./dist/cjs/styles.css"
     }
@@ -52,7 +58,7 @@
     "url": "https://github.com/alexdln/"
   },
   "devDependencies": {
-    "@nimpl/cache-redis": "0.1.0",
+    "@nimpl/cache-redis": "0.2.0",
     "@rollup/plugin-commonjs": "29.0.0",
     "@rollup/plugin-node-resolve": "16.0.3",
     "@rollup/plugin-terser": "0.4.4",
