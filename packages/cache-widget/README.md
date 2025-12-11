@@ -14,42 +14,13 @@ pnpm add @nimpl/cache-widget
 
 ### 1. Create an API Route
 
-You have two options for creating the API route, depending on whether you're using the default cache handler instance or a custom one:
-
-**With Default Cache Handler Instance**
-
-If you're using the default instance of `@nimpl/cache-redis`, use the `route` helper:
-
 ```ts
 // app/api/cache-widget/[[...segments]]/route.ts
-import { getCacheData } from "@nimpl/cache-widget/route";
-import { NextResponse } from "next/server";
-
-export async function GET(
-  _request: Request,
-  { params }: { params: Promise<{ segments?: string[] }> }
-) {
-  const { segments } = await params;
-  const data = await getCacheData(segments);
-
-  if (!data) {
-    return new Response("", { status: 404 });
-  }
-
-  return new Response(JSON.stringify(data));
-}
-```
-
-**With Custom Cache Handler Instance**
-
-If you've created a custom cache handler instance with custom configuration, use the `custom-route` helper:
-
-```ts
-// app/api/cache-widget/[[...segments]]/route.ts
-import { getCacheData } from "@nimpl/cache-widget/custom-route";
+import { getCacheData } from "@nimpl/cache-widget";
 import { connection } from "next/server";
-
-const cacheHandler = require("../../../../../cache-handler.js");
+import cacheHandler from "@nimpl/cache-redis";
+// or for custom instance:
+// const cacheHandler = require("../../../../../cache-handler.js");
 
 export async function GET(
   _request: Request,

@@ -17,7 +17,7 @@ const createConfig = (format, outputDir, tsconfig) => ({
         preserveModules: true,
         preserveModulesRoot: "src",
     },
-    external: ["react", "react-dom", "@nimpl/cache-redis"],
+    external: ["react", "react-dom"],
     plugins: [
         nodeResolve(),
         commonjs(),

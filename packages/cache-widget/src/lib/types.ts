@@ -21,3 +21,15 @@ export type CacheWidgetData = {
     keys: string[];
     keyDetails: Record<string, CacheKeyInfo>;
 };
+
+type CacheEntry = {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    value: ReadableStream<any> | ReadableStream<any>;
+} & Metadata;
+
+export type CacheHandler = {
+    redisLayer: {
+        getKeys: () => Promise<KeysData>;
+        readEntry: (key: string) => Promise<{ entry: CacheEntry; size: number; status: string }>;
+    };
+};

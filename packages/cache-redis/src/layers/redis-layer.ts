@@ -175,7 +175,7 @@ export class RedisLayer {
             }
             const [cacheStream, responseStream] = cacheEntry.entry.value.tee();
             cacheEntry.entry.value = cacheStream;
-            return { ...cacheEntry, value: responseStream };
+            return { ...cacheEntry, entry: { ...cacheEntry.entry, value: responseStream } };
         }
 
         const resolvePending = this.pendingReadEntryLayer.writeEntry(key);
