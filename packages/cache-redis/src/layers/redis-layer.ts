@@ -168,7 +168,15 @@ export class RedisLayer {
         if (!connected) return undefined;
 
         const activeReadEntryPromise = this.pendingReadEntryLayer.readEntry(key);
-        if (activeReadEntryPromise) return activeReadEntryPromise;
+        if (activeReadEntryPromise) {
+            const cacheEntry = await activeReadEntryPromise;
+            if (!cacheEntry) {
+                return cacheEntry;
+            }
+            const [cacheStream, responseStream] = cacheEntry.entry.value.tee();
+            cacheEntry.entry.value = cacheStream;
+            return { ...cacheEntry, value: responseStream };
+        }
 
         const resolvePending = this.pendingReadEntryLayer.writeEntry(key);
 

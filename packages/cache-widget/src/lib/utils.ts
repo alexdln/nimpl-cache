@@ -18,8 +18,8 @@ export const formatDuration = (seconds: number): string => {
     if (!seconds) return "0s";
 
     const secondsPart = seconds % 60 ? `${seconds % 60}s` : "";
-    const minutesPart = seconds > 60 && seconds % 3600 ? `${Math.floor(seconds / 60) % 60}m` : "";
-    const hoursPart = seconds > 3600 && seconds % 86400 ? `${Math.floor(seconds / 3600)}h` : "";
+    const minutesPart = seconds >= 60 && seconds % 3600 ? `${Math.floor(seconds / 60) % 60}m` : "";
+    const hoursPart = seconds >= 3600 && seconds % 86400 ? `${Math.floor(seconds / 3600)}h` : "";
 
     return [hoursPart, minutesPart, secondsPart].filter(Boolean).join(" ");
 };
