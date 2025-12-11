@@ -23,7 +23,9 @@ export const getKeyDetails = async (key: string): Promise<CacheKeyInfo> => {
         }
 
         const { entry, size, status } = cacheEntry;
-        const buffer = await readStream(entry.value);
+        const [cacheStream, responseStream] = entry.value.tee();
+        entry.value = cacheStream;
+        const buffer = await readStream(responseStream);
         let value: string | null = null;
 
         try {
