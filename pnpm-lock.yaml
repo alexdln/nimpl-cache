@@ -103,9 +103,6 @@ importers:
 
   packages/cache-widget:
     devDependencies:
-      '@nimpl/cache-redis':
-        specifier: workspace:*
-        version: link:../cache-redis
       '@rollup/plugin-commonjs':
         specifier: 29.0.0
         version: 29.0.0(rollup@4.53.3)
