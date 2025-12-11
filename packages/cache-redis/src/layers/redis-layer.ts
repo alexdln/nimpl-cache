@@ -201,6 +201,7 @@ export class RedisLayer {
 
         const cacheEntry = { entry, size: buffer.byteLength, status };
         resolvePending(cacheEntry);
+        this.pendingReadEntryLayer.delete(key);
         return cacheEntry;
     }
 
@@ -304,6 +305,7 @@ export class RedisLayer {
         } while (cursor !== "0");
 
         resolvePending(keys);
+        this.pendingGetKeysLayer.delete("keys");
 
         return keys;
     }
