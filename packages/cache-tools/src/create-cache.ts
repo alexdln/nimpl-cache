@@ -1,14 +1,18 @@
 import { Readable } from "node:stream";
 
-import { type CacheHandler } from "./lib/types";
+import { type CacheHandler, type Metadata } from "./lib/types";
 
 export const cache =
     <Params extends unknown[], Callback extends (...args: Params) => Promise<unknown>>(
-        key: string,
         callback: Callback,
-        cacheHandler: CacheHandler,
+        options: {
+            key: string;
+            duration?: Pick<Metadata, "stale" | "revalidate" | "expire">;
+            cacheHandler: CacheHandler;
+        },
     ) =>
     async (...args: Params): Promise<Awaited<ReturnType<Callback>>> => {
+        const { key, duration, cacheHandler } = options;
         const cached = await cacheHandler.get(key);
 
         try {
@@ -29,9 +33,9 @@ export const cache =
                 value: Readable.toWeb(Readable.from(JSON.stringify(data))),
                 tags: [],
                 timestamp: performance.timeOrigin + performance.now(),
-                stale: 30,
-                revalidate: 60,
-                expire: 120,
+                stale: duration?.stale || 30,
+                revalidate: duration?.revalidate || 60,
+                expire: duration?.expire || 120,
             }),
         );
 
@@ -40,6 +44,12 @@ export const cache =
 
 export const createCache = (cacheHandler: CacheHandler) => {
     return {
-        cache: (key: string, callback: (...args: unknown[]) => Promise<unknown>) => cache(key, callback, cacheHandler),
+        cache: (
+            callback: (...args: unknown[]) => Promise<unknown>,
+            options: {
+                key: string;
+                duration?: Pick<Metadata, "stale" | "revalidate" | "expire">;
+            },
+        ) => cache(callback, { ...options, cacheHandler }),
     };
 };

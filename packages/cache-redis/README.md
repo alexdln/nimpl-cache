@@ -148,46 +148,37 @@ export default nextConfig;
 
 ### Other Frameworks
 
-The cache handler can be used directly to build custom caching solutions. Import and instantiate `CacheHandler` from `@nimpl/cache-redis/cache-handler`:
+The cache handler can be used directly to build custom caching solutions. Also you can use @nimpl/cache-tools with built-in methods
 
-> **Note**: Use a singleton pattern if your runtime supports it. In serverless environments the in-memory cache will be reset between invocations, so the handler will primarily use Redis for caching.
+> **Note**: Use a singleton pattern if your runtime supports it. In serverless environments the in-memory cache will be reset between server invocations, so the handler will primarily use Redis for caching.
 
 ```ts
-import { Readable } from "node:stream";
+// cache-handler.ts
 import { CacheHandler } from "@nimpl/cache-redis/cache-handler";
+import { createCache } from "@nimpl/cache-tools";
 
-const cacheHandler = new CacheHandler();
+const cacheHandler = new CacheHandler({
+  redisOptions: { keyPrefix: "admin:" },
+});
 
-export const cache =
-  <Params extends unknown[]>(
-    key: string,
-    callback: (...args: Params) => Promise<unknown>
-  ) =>
-  async (...args: Params) => {
-    const cacheKey = `["${process.env.BUILD_ID}",${key}]`;
-    const cached = await cacheHandler.get(cacheKey);
+export const { cache } = createCache(cacheHandler);
+```
 
-    if (cached?.value && cached.value instanceof ReadableStream) {
-      const reader = cached.value.getReader();
-      const { value } = await reader.read();
-      if (value) return JSON.parse(value);
-    }
+```ts
+// get-cached-feed.ts
+import { fetchBskyFeed, type FEEDS } from "./bsky";
+import { cache } from "@/cache-handler";
 
-    const data = await callback(...args);
-    await cacheHandler.set(
-      cacheKey,
-      Promise.resolve({
-        value: Readable.toWeb(Readable.from(JSON.stringify(data))),
-        tags: [],
-        timestamp: performance.timeOrigin + performance.now(),
-        stale: 30,
-        expire: 60,
-        revalidate: 120,
-      })
-    );
-
-    return data;
-  };
+export const getCachedFeed = async (id: keyof typeof FEEDS) => {
+  const getFeed = cache(
+    async () => {
+      const feed = await fetchBskyFeed(id);
+      return feed;
+    },
+    { key: `feed-data:${id}` }
+  );
+  return getFeed();
+};
 ```
 
 ## Health Checks

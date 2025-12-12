@@ -38,10 +38,13 @@ import { fetchBskyFeed, type FEEDS } from "./bsky";
 import { cache } from "@/cache-handler";
 
 export const getCachedFeed = async (id: keyof typeof FEEDS) => {
-  const getFeed = cache(`feed-data:${id}`, async () => {
-    const feed = await fetchBskyFeed(id);
-    return feed;
-  });
+  const getFeed = cache(
+    async () => {
+      const feed = await fetchBskyFeed(id);
+      return feed;
+    },
+    { key: `feed-data:${id}` }
+  );
   return getFeed();
 };
 ```
