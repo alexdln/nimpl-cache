@@ -10,29 +10,29 @@
     "cache-handler"
   ],
   "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
+  "module": "dist/esm/index.mjs",
   "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/cjs/index.d.ts",
-      "import": "./dist/esm/index.js",
+      "import": "./dist/esm/index.mjs",
       "require": "./dist/cjs/index.js",
-      "default": "./dist/cjs/index.js"
+      "default": "./dist/esm/index.mjs"
     },
     "./widget": {
       "types": "./dist/cjs/widget.d.ts",
-      "import": "./dist/esm/widget.js",
+      "import": "./dist/esm/widget.mjs",
       "require": "./dist/cjs/widget.js",
-      "default": "./dist/cjs/widget.js"
+      "default": "./dist/esm/widget.mjs"
     },
     "./route": {
       "types": "./dist/cjs/route.d.ts",
-      "import": "./dist/esm/route.js",
+      "import": "./dist/esm/route.mjs",
       "require": "./dist/cjs/route.js",
-      "default": "./dist/cjs/route.js"
+      "default": "./dist/esm/route.mjs"
     },
     "./styles.css": {
-      "default": "./dist/cjs/styles.css"
+      "default": "./dist/esm/styles.css"
     }
   },
   "files": [

@@ -14,20 +14,20 @@
     "redis cache"
   ],
   "main": "dist/cjs/index.js",
-  "module": "dist/esm/index.js",
+  "module": "dist/esm/index.mjs",
   "types": "dist/cjs/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/cjs/index.d.ts",
-      "import": "./dist/esm/index.js",
+      "import": "./dist/esm/index.mjs",
       "require": "./dist/cjs/index.js",
-      "default": "./dist/cjs/index.js"
+      "default": "./dist/esm/index.mjs"
     },
     "./cache-handler": {
       "types": "./dist/cjs/cache-handler.d.ts",
-      "import": "./dist/esm/cache-handler.js",
+      "import": "./dist/esm/cache-handler.mjs",
       "require": "./dist/cjs/cache-handler.js",
-      "default": "./dist/cjs/cache-handler.js"
+      "default": "./dist/esm/cache-handler.mjs"
     }
   },
   "files": [
