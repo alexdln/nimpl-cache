@@ -1,10 +1,10 @@
 import { type Durations, type Metadata } from "../types";
 import { PREFIX_ENTRY, PREFIX_META } from "./constants";
 
-export const getCacheKeys = (key: string) => {
+export const getCacheKeys = (key: string, keyPrefix: string = "") => {
     return {
-        cacheKey: `${PREFIX_ENTRY}${key}`,
-        metaKey: `${PREFIX_META}${key}`,
+        cacheKey: `${keyPrefix}${PREFIX_ENTRY}${key}`,
+        metaKey: `${keyPrefix}${PREFIX_META}${key}`,
     };
 };
 

@@ -29,8 +29,11 @@ export class RedisLayer {
 
     private pendingReadEntryLayer = new PendingsLayer<{ entry: Entry; size: number; status: string } | undefined>();
 
+    private keyPrefix: string = "";
+
     constructor(redisOptions: Options["redisOptions"], logger: Logger) {
-        const { url, connectionStrategy, ...restOptions } = redisOptions || {};
+        const { url, connectionStrategy, keyPrefix, ...restOptions } = redisOptions || {};
+        this.keyPrefix = keyPrefix || "";
         this.logger = logger;
         this.connectionStrategy = connectionStrategy || "ignore";
         let resolvePending: ((value: boolean) => void) | undefined = undefined;
@@ -180,7 +183,7 @@ export class RedisLayer {
 
         const resolvePending = this.pendingReadEntryLayer.writeEntry(key);
 
-        const { cacheKey, metaKey } = getCacheKeys(key);
+        const { cacheKey, metaKey } = getCacheKeys(key, this.keyPrefix);
         const metaEntry = await this.redisClient.get(metaKey);
         if (!metaEntry) {
             this.pendingReadEntryLayer.delete(key);
@@ -219,7 +222,7 @@ export class RedisLayer {
         const connected = await this.connect();
         if (!connected) return;
 
-        const { cacheKey, metaKey } = getCacheKeys(key);
+        const { cacheKey, metaKey } = getCacheKeys(key, this.keyPrefix);
         const pipeline = this.redisClient.pipeline();
         pipeline.set(cacheKey, entry.value.toString("base64"), "EX", entry.expire);
         pipeline.set(
@@ -245,7 +248,7 @@ export class RedisLayer {
         const connected = await this.connect();
         if (!connected) return;
 
-        const pattern = `${PREFIX_META}*`;
+        const pattern = `${this.keyPrefix}${PREFIX_META}*`;
         let cursor = "0";
 
         do {
@@ -289,7 +292,7 @@ export class RedisLayer {
         const connected = await this.connect();
         if (!connected) return;
 
-        const { cacheKey, metaKey } = getCacheKeys(key);
+        const { cacheKey, metaKey } = getCacheKeys(key, this.keyPrefix);
         await this.redisClient.del(cacheKey, metaKey);
     }
 
@@ -302,7 +305,7 @@ export class RedisLayer {
 
         const resolvePending = this.pendingGetKeysLayer.writeEntry("keys");
 
-        const pattern = `${PREFIX_META}*`;
+        const pattern = `${this.keyPrefix}${PREFIX_META}*`;
         const keys: string[] = [];
         let cursor = "0";
 
@@ -310,7 +313,7 @@ export class RedisLayer {
             const [nextCursor, metaKeys] = await this.redisClient.scan(cursor, "MATCH", pattern, "COUNT", 1000);
             cursor = nextCursor;
 
-            const originalKeys = metaKeys.map((metaKey) => metaKey.replace(PREFIX_META, ""));
+            const originalKeys = metaKeys.map((metaKey) => metaKey.replace(`${this.keyPrefix}${PREFIX_META}`, ""));
             keys.push(...originalKeys);
         } while (cursor !== "0");
 
