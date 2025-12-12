@@ -10,7 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "next": "14.2.33",
+    "next": "14.2.35",
     "@nimpl/cache-adapter": "latest",
     "@nimpl/cache-in-memory": "latest",
     "react": "^18",
