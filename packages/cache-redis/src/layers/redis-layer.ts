@@ -182,15 +182,25 @@ export class RedisLayer {
 
         const { cacheKey, metaKey } = getCacheKeys(key);
         const metaEntry = await this.redisClient.get(metaKey);
-        if (!metaEntry) return undefined;
+        if (!metaEntry) {
+            this.pendingReadEntryLayer.delete(key);
+            resolvePending(undefined);
+            return undefined;
+        }
 
         const metaData: Metadata = JSON.parse(metaEntry);
         const status = getCacheStatus(metaData.timestamp, metaData.revalidate, metaData.expire);
-        if (status === "expire") return null;
+        if (status === "expire") {
+            this.pendingReadEntryLayer.delete(key);
+            resolvePending(undefined);
+            return null;
+        }
 
         const redisEntry = await this.redisClient.get(cacheKey);
         if (!redisEntry) {
             await this.redisClient.del(metaKey);
+            this.pendingReadEntryLayer.delete(key);
+            resolvePending(undefined);
             return undefined;
         }
 
@@ -200,8 +210,8 @@ export class RedisLayer {
         });
 
         const cacheEntry = { entry, size: buffer.byteLength, status };
-        resolvePending(cacheEntry);
         this.pendingReadEntryLayer.delete(key);
+        resolvePending(cacheEntry);
         return cacheEntry;
     }
 
@@ -304,8 +314,8 @@ export class RedisLayer {
             keys.push(...originalKeys);
         } while (cursor !== "0");
 
-        resolvePending(keys);
         this.pendingGetKeysLayer.delete("keys");
+        resolvePending(keys);
 
         return keys;
     }

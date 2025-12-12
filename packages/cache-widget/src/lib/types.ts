@@ -1,3 +1,5 @@
+import { type ReadableStream as WebReadableStream } from "node:stream/web";
+
 export type Metadata = {
     tags: string[];
     timestamp: number;
@@ -24,12 +26,12 @@ export type CacheWidgetData = {
 
 type CacheEntry = {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    value: ReadableStream<any> | ReadableStream<any>;
+    value: ReadableStream<any> | WebReadableStream<any>;
 } & Metadata;
 
 export type CacheHandler = {
     redisLayer: {
         getKeys: () => Promise<KeysData>;
-        readEntry: (key: string) => Promise<{ entry: CacheEntry; size: number; status: string }>;
+        readEntry: (key: string) => Promise<{ entry: CacheEntry; size: number; status: string } | null | undefined>;
     };
 };
