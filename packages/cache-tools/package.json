@@ -1,0 +1,59 @@
+{
+  "name": "@nimpl/cache-tools",
+  "version": "0.0.1",
+  "description": "",
+  "keywords": [
+    "next",
+    "nextjs",
+    "react router",
+    "react",
+    "cache",
+    "cache-handler",
+    "remote cache",
+    "k8s cache"
+  ],
+  "main": "dist/cjs/index.js",
+  "module": "dist/esm/index.js",
+  "types": "dist/cjs/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/cjs/index.d.ts",
+      "import": "./dist/esm/index.js",
+      "require": "./dist/cjs/index.js",
+      "default": "./dist/cjs/index.js"
+    },
+    "./cache-handler": {
+      "types": "./dist/cjs/cache-handler.d.ts",
+      "import": "./dist/esm/cache-handler.js",
+      "require": "./dist/cjs/cache-handler.js",
+      "default": "./dist/cjs/cache-handler.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rollup -c",
+    "clean": "rm -rf dist"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/alexdln/nimpl-cache.git"
+  },
+  "author": {
+    "name": "Alex Savelyev",
+    "email": "dev@alexdln.com",
+    "url": "https://github.com/alexdln/"
+  },
+  "devDependencies": {
+    "@rollup/plugin-commonjs": "29.0.0",
+    "@rollup/plugin-node-resolve": "16.0.3",
+    "@rollup/plugin-terser": "0.4.4",
+    "@rollup/plugin-typescript": "12.3.0",
+    "@types/node": "24.10.1",
+    "rollup": "4.53.3",
+    "tslib": "2.8.1",
+    "typescript": "5.9.3"
+  },
+  "license": "MIT"
+}
