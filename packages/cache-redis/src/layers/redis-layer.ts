@@ -35,9 +35,18 @@ export class RedisLayer {
         const { url, connectionStrategy, keyPrefix, ...restOptions } = redisOptions || {};
         this.keyPrefix = keyPrefix || "";
         this.logger = logger;
-        this.connectionStrategy = connectionStrategy || "ignore";
+        if (connectionStrategy) {
+            this.connectionStrategy = connectionStrategy;
+        } else if (
+            process.env.CONNECTION_STRATEGY &&
+            ["wait-ignore", "wait-throw", "wait-exit"].includes(process.env.CONNECTION_STRATEGY)
+        ) {
+            this.connectionStrategy = process.env.CONNECTION_STRATEGY as RedisConnectionStrategy;
+        } else {
+            this.connectionStrategy = "ignore";
+        }
         let resolvePending: ((value: boolean) => void) | undefined = undefined;
-        const redisClient = new Redis(url || "redis://localhost:6379", {
+        const redisClient = new Redis(url || process.env.REDIS_URL || "redis://localhost:6379", {
             retryStrategy: () => {
                 if (this.connectAttempts === 0) {
                     resolvePending = this.pendingConnectLayer.writeEntry("connect");

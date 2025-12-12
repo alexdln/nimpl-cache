@@ -11,18 +11,17 @@ export class LruLayer {
 
     private lruTtl: number | "auto";
 
-    constructor(
-        options: Options["lruOptions"] = { maxSize: DEFAULT_LRU_MAX_SIZE },
-        logger: Logger,
-        lruTtl: number | "auto" = DEFAULT_LRU_TTL,
-    ) {
-        this.lruTtl = lruTtl;
+    constructor(options: Options["lruOptions"], logger: Logger, lruTtl?: number | "auto") {
+        this.lruTtl = lruTtl || (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) || DEFAULT_LRU_TTL;
         this.logger = logger;
         this.lruClient = new LRUCache<string, LruCacheEntry, unknown>({
-            maxSize: DEFAULT_LRU_MAX_SIZE,
+            maxSize:
+                options?.maxSize ||
+                (process.env.LRU_MAX_SIZE && parseInt(process.env.LRU_MAX_SIZE)) ||
+                DEFAULT_LRU_MAX_SIZE,
             sizeCalculation: (entry) => entry.size,
             ttlAutopurge: true,
-            ...options,
+            ...(options || {}),
         });
     }
 
