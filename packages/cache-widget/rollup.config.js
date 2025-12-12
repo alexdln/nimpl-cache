@@ -16,6 +16,7 @@ const createConfig = (format, outputDir, tsconfig) => ({
         sourcemap: true,
         preserveModules: true,
         preserveModulesRoot: "src",
+        entryFileNames: `[name].${format === "esm" ? "mjs" : "js"}`,
     },
     external: ["react", "react-dom"],
     plugins: [
@@ -40,6 +41,6 @@ const createConfig = (format, outputDir, tsconfig) => ({
 });
 
 module.exports = [
-    createConfig("es", "dist/esm", "./tsconfig.esm.json"),
+    createConfig("esm", "dist/esm", "./tsconfig.esm.json"),
     createConfig("cjs", "dist/cjs", "./tsconfig.cjs.json"),
 ];
