@@ -5,22 +5,52 @@ React widget for visualizing and inspecting cache entries from `@nimpl/cache-red
 ## Installation
 
 ```bash
-npm install @nimpl/cache-widget
+npm install @nimpl/cache-widget @nimpl/cache-tools
 # or
-pnpm add @nimpl/cache-widget
+pnpm add @nimpl/cache-widget @nimpl/cache-tools
 ```
 
 ## Setup
 
-### 1. Create an API Route
+### Initialize a cache handler
+
+```ts
+// cache-handler.ts
+import { CacheHandler } from "@nimpl/cache-redis/cache-handler";
+import { createCache, createHelpers } from "@nimpl/cache-tools";
+
+const cacheHandler = new CacheHandler({
+  redisOptions: { connectionStrategy: "wait-ignore" },
+});
+
+export const { cache } = createCache(cacheHandler);
+export const { getKeys, getKeyDetails, getCacheData } =
+  createHelpers(cacheHandler);
+```
+
+### Add an API route for the widget
+
+React Router loader:
+
+```ts
+// app/api/cache-widget/route.ts
+import { getCacheData } from "@/cache-handler";
+
+export const loader = async ({ params }: { params: { id?: string } }) => {
+  const data = await getCacheData(params.id ? [params.id] : undefined);
+
+  if (!data) return new Response("", { status: 404 });
+
+  return new Response(JSON.stringify(data));
+};
+```
+
+Next.js route handler:
 
 ```ts
 // app/api/cache-widget/[[...segments]]/route.ts
-import { getCacheData } from "@nimpl/cache-widget";
-import { connection } from "next/server";
+import { getCacheData } from "@/cache-handler";
 import cacheHandler from "@nimpl/cache-redis";
-// or for custom instance:
-// const cacheHandler = require("../../../../../cache-handler.js");
 
 export async function GET(
   _request: Request,
@@ -29,15 +59,15 @@ export async function GET(
   const { segments } = await params;
   const data = await getCacheData(cacheHandler, segments);
 
-  if (!data) {
-    return new Response("", { status: 404 });
-  }
+  if (!data) return new Response("", { status: 404 });
 
   return new Response(JSON.stringify(data));
 }
 ```
 
-### 2. Add the Widget to Your Layout
+Use `getCacheData` as the single entry point: no segments returns keys, one segment returns entry details, more than one segment returns 404.
+
+### Add the widget to your layout
 
 Add the `CacheWidget` component to your root layout or any page:
 

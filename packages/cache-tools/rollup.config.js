@@ -15,7 +15,6 @@ const createConfig = (format, outputDir, tsconfig) => ({
         preserveModules: true,
         preserveModulesRoot: "src",
     },
-    external: ["ioredis", "chalk", "lru-cache"],
     plugins: [
         nodeResolve(),
         commonjs(),

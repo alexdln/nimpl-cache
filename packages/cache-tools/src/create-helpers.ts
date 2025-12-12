@@ -1,4 +1,4 @@
-import { type CacheHandler, type CacheKeyInfo, type KeysData } from "./lib/types";
+import { type CacheHandler, type KeysData } from "./lib/types";
 import { readStream } from "./lib/stream";
 
 export const getKeys = async (cacheHandler: CacheHandler): Promise<KeysData> => {
@@ -6,7 +6,7 @@ export const getKeys = async (cacheHandler: CacheHandler): Promise<KeysData> => 
     return keys;
 };
 
-export const getKeyDetails = async (cacheHandler: CacheHandler, key: string): Promise<CacheKeyInfo> => {
+export const getKeyDetails = async (cacheHandler: CacheHandler, key: string) => {
     try {
         const cacheEntry = await cacheHandler.redisLayer.readEntry(key);
 
@@ -29,7 +29,6 @@ export const getKeyDetails = async (cacheHandler: CacheHandler, key: string): Pr
         try {
             value = buffer.toString("utf-8");
         } catch {
-            // If it's not valid UTF-8, represent as base64 or hex
             value = buffer.toString("base64");
         }
 
@@ -68,4 +67,12 @@ export const getCacheData = (cacheHandler: CacheHandler, segments?: string[]) =>
     }
 
     return getKeyDetails(cacheHandler, segments[0]);
+};
+
+export const createHelpers = (cacheHandler: CacheHandler) => {
+    return {
+        getKeys: () => getKeys(cacheHandler),
+        getKeyDetails: (key: string) => getKeyDetails(cacheHandler, key),
+        getCacheData: (segments?: string[]) => getCacheData(cacheHandler, segments),
+    };
 };
