@@ -21,12 +21,6 @@
       "import": "./dist/esm/index.js",
       "require": "./dist/cjs/index.js",
       "default": "./dist/cjs/index.js"
-    },
-    "./cache-handler": {
-      "types": "./dist/cjs/cache-handler.d.ts",
-      "import": "./dist/esm/cache-handler.js",
-      "require": "./dist/cjs/cache-handler.js",
-      "default": "./dist/cjs/cache-handler.js"
     }
   },
   "files": [
