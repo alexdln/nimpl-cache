@@ -52,9 +52,11 @@ export class LruLayer {
 
     async set(key: string, pendingEntry: Promise<Entry> | Entry) {
         const entry = await pendingEntry;
+        const [cacheStream, responseStream] = entry.value.tee();
+        entry.value = responseStream;
 
         let size = 0;
-        for await (const chunk of entry.value) {
+        for await (const chunk of cacheStream) {
             size += chunk.byteLength;
         }
         this.lruClient.set(key, { entry, size, status: "valid" }, { ttl: this.calculateLruTtl(entry.expire) });

@@ -115,14 +115,15 @@ export class CacheHandler {
 
         const entry = await pendingEntry;
         const [cacheStreamMain, responseStream] = entry.value.tee();
-        const [cacheStreamEphemeral, cacheStreamPersistent] = cacheStreamMain.tee();
+        entry.value = responseStream;
 
+        const [cacheStreamEphemeral, cacheStreamPersistent] = cacheStreamMain.tee();
         await this.ephemeralLayer.set(key, { ...entry, value: cacheStreamEphemeral });
 
         try {
             await this.persistentLayer.set(key, { ...entry, value: cacheStreamPersistent });
 
-            resolvePending({ ...entry, value: responseStream });
+            resolvePending(entry);
             this.logOperation("SET", "REVALIDATED", "NEW", key);
         } catch (error) {
             resolvePending(undefined);

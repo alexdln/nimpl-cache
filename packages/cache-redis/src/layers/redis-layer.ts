@@ -11,7 +11,7 @@ import {
 } from "../types";
 import { PREFIX_META } from "../lib/constants";
 import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
-import { createStreamFromBuffer } from "../lib/stream";
+import { bufferToStream } from "../lib/stream";
 import { PendingsLayer } from "./pendings-layer";
 import { CacheConnectionError, CacheError } from "../lib/error";
 
@@ -176,19 +176,18 @@ export class RedisLayer {
             return null;
         }
 
-        const redisEntry = await this.redisClient.get(cacheKey);
-        if (!redisEntry) {
+        const redisBuffer = await this.redisClient.getBuffer(cacheKey);
+        if (!redisBuffer) {
             await this.redisClient.del(metaKey);
             resolvePending(undefined);
             return undefined;
         }
 
-        const buffer = Buffer.from(redisEntry, "base64");
         const entry: Entry = Object.assign(metaData, {
-            value: createStreamFromBuffer(buffer),
+            value: bufferToStream(redisBuffer),
         });
 
-        const cacheEntry = { entry, size: buffer.byteLength, status };
+        const cacheEntry = { entry, size: redisBuffer.byteLength, status };
         resolvePending(cacheEntry);
         return cacheEntry;
     }
@@ -220,9 +219,9 @@ export class RedisLayer {
             entry.expire,
         );
         const results = await pipeline.exec();
-        const error = results?.find((result) => result?.[0])?.[0];
-        if (error) {
-            throw new CacheError(error instanceof Error ? error.message : "Failed to write entry to Redis");
+        const setError = results?.find(([error]) => error)?.[0];
+        if (setError) {
+            throw new CacheError(setError instanceof Error ? setError.message : "Failed to write entry to Redis");
         }
     }
 
@@ -246,11 +245,11 @@ export class RedisLayer {
             const now = performance.timeOrigin + performance.now();
             const setPipeline = this.redisClient.pipeline();
 
-            getResults?.forEach((result, index) => {
-                if (!result || result[0]) return;
+            getResults?.forEach(([error, result], index) => {
+                if (error) return;
 
                 try {
-                    const metadata: Metadata = JSON.parse(result[1] as string);
+                    const metadata: Metadata = JSON.parse(result as string);
                     const updated = getUpdatedMetadata(metadata, tags, durations, now);
                     if (updated !== metadata) {
                         setPipeline.set(metaKeys[index], JSON.stringify(updated));
@@ -262,9 +261,11 @@ export class RedisLayer {
 
             if (setPipeline.length > 0) {
                 const results = await setPipeline.exec();
-                const error = results?.find((result) => result?.[0])?.[0];
-                if (error) {
-                    throw new CacheError(error instanceof Error ? error.message : "Failed to update tags in Redis");
+                const setError = results?.find(([error]) => error)?.[0];
+                if (setError) {
+                    throw new CacheError(
+                        setError instanceof Error ? setError.message : "Failed to update tags in Redis",
+                    );
                 }
             }
         } while (cursor !== "0");
