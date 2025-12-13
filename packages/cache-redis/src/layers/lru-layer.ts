@@ -11,8 +11,8 @@ export class LruLayer {
 
     private lruTtl: number | "auto";
 
-    constructor(options: Options["lruOptions"], logger: Logger, lruTtl?: number | "auto") {
-        this.lruTtl = lruTtl || (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) || DEFAULT_LRU_TTL;
+    constructor(options: Options["lruOptions"], logger: Logger) {
+        this.lruTtl = (options?.ttl ?? (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) ?? DEFAULT_LRU_TTL) || 0;
         this.logger = logger;
         this.lruClient = new LRUCache<string, LruCacheEntry, unknown>({
             maxSize:
@@ -27,10 +27,6 @@ export class LruLayer {
 
     private calculateLruTtl(expire: number): number {
         return this.lruTtl === "auto" ? expire * 1000 : this.lruTtl * 1000;
-    }
-
-    checkIsReady() {
-        return true;
     }
 
     readEntry(key: string) {
@@ -54,10 +50,6 @@ export class LruLayer {
         };
     }
 
-    read(key: string) {
-        return this.lruClient.get(key);
-    }
-
     writeEntry(key: string, cacheEntry: LruCacheEntry) {
         this.lruClient.set(key, cacheEntry, { ttl: this.calculateLruTtl(cacheEntry.entry.expire) });
     }
@@ -75,6 +67,10 @@ export class LruLayer {
                 this.writeEntry(key, { ...value, entry: updatedEntry });
             }
         });
+    }
+
+    checkIsReady() {
+        return true;
     }
 
     getKeys(): string[] {

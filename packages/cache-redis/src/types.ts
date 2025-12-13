@@ -49,7 +49,6 @@ export type Logger = (logData: LogData) => void;
 export type RedisConnectionStrategy = "ignore" | "wait-ignore" | "wait-throw" | "wait-exit";
 
 export type Options = {
-    lruTtl?: number | "auto";
     logger?: Logger;
     redisOptions?: RedisOptions & { url?: string; connectionStrategy?: RedisConnectionStrategy };
     lruOptions?: LRUCache<string, LruCacheEntry, unknown> | LRUCache.Options<string, LruCacheEntry, unknown>;

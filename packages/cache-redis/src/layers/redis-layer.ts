@@ -49,7 +49,7 @@ export class RedisLayer {
         const redisClient = new Redis(url || process.env.REDIS_URL || "redis://localhost:6379", {
             retryStrategy: () => {
                 if (this.connectAttempts === 0) {
-                    resolvePending = this.pendingConnectLayer.writeEntry("connect");
+                    resolvePending = this.pendingConnectLayer.set("connect");
                 }
                 this.connectAttempts += 1;
                 if (this.connectAttempts > 10) {
@@ -64,7 +64,6 @@ export class RedisLayer {
                     if (resolvePending) {
                         resolvePending(false);
                         resolvePending = undefined;
-                        this.pendingConnectLayer.delete("connect");
                     }
                     return null;
                 }
@@ -89,7 +88,6 @@ export class RedisLayer {
             if (resolvePending) {
                 resolvePending(true);
                 resolvePending = undefined;
-                this.pendingConnectLayer.delete("connect");
             }
         });
 
@@ -121,7 +119,7 @@ export class RedisLayer {
     private async connect() {
         if (this.redisClient.status === "connect" || this.redisClient.status === "ready") return true;
 
-        const activeConnectionPromise = this.pendingConnectLayer.readEntry("connect");
+        const activeConnectionPromise = this.pendingConnectLayer.get("connect");
 
         if (this.connectionStrategy === "ignore") {
             if (!activeConnectionPromise) this.redisClient.connect().catch(() => false);
@@ -134,7 +132,7 @@ export class RedisLayer {
 
         if (activeConnection === undefined) {
             await this.redisClient.connect().catch(() => false);
-            await this.pendingConnectLayer.readEntry("connect");
+            await this.pendingConnectLayer.get("connect");
         }
         // @ts-expect-error check after reconnection
         const isConnected = this.redisClient.status === "connect" || this.redisClient.status === "ready";
@@ -148,38 +146,11 @@ export class RedisLayer {
         return isConnected;
     }
 
-    async clean(rule: RegExp | string) {
-        const connected = await this.connect();
-        if (!connected) return undefined;
-
-        if (rule === "*") return this.redisClient.flushall();
-
-        let cursor = "0";
-        do {
-            const [nextCursor, keys] = await this.redisClient.scan(
-                cursor,
-                "MATCH",
-                rule instanceof RegExp ? "*" : rule,
-                "COUNT",
-                1000,
-            );
-            cursor = nextCursor;
-            const matchedKeys = rule instanceof RegExp ? keys.filter((key) => rule.test(key)) : keys;
-            if (matchedKeys.length > 0) {
-                await this.redisClient.unlink(...matchedKeys);
-            }
-        } while (cursor !== "0");
-    }
-
-    checkIsReady() {
-        return this.redisClient.status === "ready";
-    }
-
     async readEntry(key: string) {
         const connected = await this.connect();
         if (!connected) return undefined;
 
-        const activeReadEntryPromise = this.pendingReadEntryLayer.readEntry(key);
+        const activeReadEntryPromise = this.pendingReadEntryLayer.get(key);
         if (activeReadEntryPromise) {
             const cacheEntry = await activeReadEntryPromise;
             if (!cacheEntry) {
@@ -190,12 +161,11 @@ export class RedisLayer {
             return { ...cacheEntry, entry: { ...cacheEntry.entry, value: responseStream } };
         }
 
-        const resolvePending = this.pendingReadEntryLayer.writeEntry(key);
+        const resolvePending = this.pendingReadEntryLayer.set(key);
 
         const { cacheKey, metaKey } = getCacheKeys(key, this.keyPrefix);
         const metaEntry = await this.redisClient.get(metaKey);
         if (!metaEntry) {
-            this.pendingReadEntryLayer.delete(key);
             resolvePending(undefined);
             return undefined;
         }
@@ -203,7 +173,6 @@ export class RedisLayer {
         const metaData: Metadata = JSON.parse(metaEntry);
         const status = getCacheStatus(metaData.timestamp, metaData.revalidate, metaData.expire);
         if (status === "expire") {
-            this.pendingReadEntryLayer.delete(key);
             resolvePending(undefined);
             return null;
         }
@@ -211,7 +180,6 @@ export class RedisLayer {
         const redisEntry = await this.redisClient.get(cacheKey);
         if (!redisEntry) {
             await this.redisClient.del(metaKey);
-            this.pendingReadEntryLayer.delete(key);
             resolvePending(undefined);
             return undefined;
         }
@@ -222,7 +190,6 @@ export class RedisLayer {
         });
 
         const cacheEntry = { entry, size: buffer.byteLength, status };
-        this.pendingReadEntryLayer.delete(key);
         resolvePending(cacheEntry);
         return cacheEntry;
     }
@@ -305,14 +272,18 @@ export class RedisLayer {
         await this.redisClient.del(cacheKey, metaKey);
     }
 
+    checkIsReady() {
+        return this.redisClient.status === "ready";
+    }
+
     async getKeys(): Promise<string[]> {
         const connected = await this.connect();
         if (!connected) return [];
 
-        const activeGetKeysPromise = this.pendingGetKeysLayer.readEntry("keys");
+        const activeGetKeysPromise = this.pendingGetKeysLayer.get("keys");
         if (activeGetKeysPromise) return activeGetKeysPromise;
 
-        const resolvePending = this.pendingGetKeysLayer.writeEntry("keys");
+        const resolvePending = this.pendingGetKeysLayer.set("keys");
 
         const pattern = `${this.keyPrefix}${PREFIX_META}*`;
         const keys: string[] = [];
@@ -326,7 +297,6 @@ export class RedisLayer {
             keys.push(...originalKeys);
         } while (cursor !== "0");
 
-        this.pendingGetKeysLayer.delete("keys");
         resolvePending(keys);
 
         return keys;

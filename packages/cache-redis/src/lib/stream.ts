@@ -1,7 +1,7 @@
 import { type Entry } from "../types";
 
-export const readChunks = async (entry: Pick<Entry, "value">) => {
-    const reader = entry.value.getReader();
+export const readChunks = async (stream: Entry["value"]) => {
+    const reader = stream.getReader();
     const chunks = [];
 
     try {

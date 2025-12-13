@@ -1,5 +1,5 @@
 import { type Durations, type Logger, type Entry, type LogData, type Options } from "./types";
-import { createStreamFromBuffer, readChunks } from "./lib/stream";
+import { readChunks } from "./lib/stream";
 import { logger as defaultLogger } from "./lib/logger";
 import { RedisLayer } from "./layers/redis-layer";
 import { LruLayer } from "./layers/lru-layer";
@@ -7,9 +7,9 @@ import { PendingsLayer } from "./layers/pendings-layer";
 import { CacheError } from "./lib/error";
 
 export class CacheHandler {
-    lruLayer: LruLayer;
+    ephemeralLayer: LruLayer;
 
-    redisLayer: RedisLayer;
+    persistentLayer: RedisLayer;
 
     private pendingGetsLayer = new PendingsLayer<Entry | undefined | null>();
 
@@ -17,12 +17,12 @@ export class CacheHandler {
 
     private logger: Logger;
 
-    constructor({ lruTtl, redisOptions, logger, lruOptions }: Options = {}) {
+    constructor({ lruOptions, redisOptions, logger }: Options = {}) {
         const isLoggerEnabled = logger || process.env.NEXT_PRIVATE_DEBUG_CACHE || process.env.NIC_LOGGER;
         this.logger = isLoggerEnabled ? logger || defaultLogger : () => {};
 
-        this.redisLayer = new RedisLayer(redisOptions, this.logger);
-        this.lruLayer = new LruLayer(lruOptions, this.logger, lruTtl);
+        this.ephemeralLayer = new LruLayer(lruOptions, this.logger);
+        this.persistentLayer = new RedisLayer(redisOptions, this.logger);
     }
 
     private logOperation(
@@ -35,12 +35,8 @@ export class CacheHandler {
         this.logger({ type, status, source, key, message });
     }
 
-    checkIsReady() {
-        return this.redisLayer.checkIsReady() && this.lruLayer.checkIsReady();
-    }
-
     async get(key: string) {
-        const pendingSet = await this.pendingSetsLayer.readEntry(key);
+        const pendingSet = await this.pendingSetsLayer.get(key);
         if (pendingSet === null) return undefined;
         if (pendingSet) {
             this.logOperation("GET", "REVALIDATED", "NEW", key);
@@ -49,17 +45,17 @@ export class CacheHandler {
             return { ...pendingSet, value: responseStream };
         }
 
-        const memoryCache = this.lruLayer.readEntry(key);
-        if (memoryCache) {
-            if (memoryCache.status === "revalidate") {
+        const ephemeralCache = this.ephemeralLayer.readEntry(key);
+        if (ephemeralCache) {
+            if (ephemeralCache.status === "revalidate") {
                 this.logOperation("GET", "REVALIDATING", "MEMORY", key);
                 return undefined;
             }
             this.logOperation("GET", "HIT", "MEMORY", key);
-            return memoryCache.entry;
+            return ephemeralCache.entry;
         }
 
-        const pendingGet = await this.pendingGetsLayer.readEntry(key);
+        const pendingGet = await this.pendingGetsLayer.get(key);
         if (pendingGet === null) {
             this.logOperation("GET", "MISS", "NONE", key);
             return undefined;
@@ -71,36 +67,33 @@ export class CacheHandler {
             return { ...pendingGet, value: responseStream };
         }
 
-        const resolvePending = this.pendingGetsLayer.writeEntry(key);
+        const resolvePending = this.pendingGetsLayer.set(key);
 
         try {
-            const redisCache = await this.redisLayer.readEntry(key);
+            const persistentCache = await this.persistentLayer.readEntry(key);
 
-            if (redisCache === null) {
-                await this.redisLayer.delete(key);
+            if (persistentCache === null) {
+                await this.persistentLayer.delete(key);
             }
 
-            if (!redisCache) {
-                if (memoryCache === null) this.lruLayer.delete(key);
+            if (!persistentCache) {
+                if (ephemeralCache === null) this.ephemeralLayer.delete(key);
                 this.logOperation(
                     "GET",
-                    redisCache === null ? "EXPIRED" : "MISS",
-                    redisCache === null ? "REDIS" : "NONE",
+                    persistentCache === null ? "EXPIRED" : "MISS",
+                    persistentCache === null ? "REDIS" : "NONE",
                     key,
                 );
                 resolvePending(null);
-                this.pendingGetsLayer.delete(key);
                 return undefined;
             }
 
-            const { entry, status } = redisCache;
+            const { entry, status } = persistentCache;
             const [cacheStream, responseStream] = entry.value.tee();
             entry.value = cacheStream;
 
-            this.lruLayer.writeEntry(key, redisCache);
-
+            this.ephemeralLayer.writeEntry(key, persistentCache);
             const responseEntry = { ...entry, value: responseStream };
-            this.pendingGetsLayer.delete(key);
 
             if (status === "revalidate") {
                 this.logOperation("GET", "REVALIDATING", "REDIS", key);
@@ -113,41 +106,38 @@ export class CacheHandler {
         } catch (error) {
             this.logOperation("GET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
             resolvePending(null);
-            this.pendingGetsLayer.delete(key);
 
             if (error instanceof CacheError) throw error;
         }
     }
 
     async set(key: string, pendingEntry: Promise<Entry>) {
-        const resolvePending = this.pendingSetsLayer.writeEntry(key);
+        const resolvePending = this.pendingSetsLayer.set(key);
 
         const entry = await pendingEntry;
-        const chunks = await readChunks(entry);
+        const [cacheStreamMain, responseStream] = entry.value.tee();
+        const [cacheStream, cacheStreamRead] = cacheStreamMain.tee();
+
+        const chunks = await readChunks(cacheStreamRead);
         const data = Buffer.concat(chunks.map(Buffer.from));
         const size = data.byteLength || 1;
 
-        const [cacheStream, responseStream] = createStreamFromBuffer(data).tee();
-        const lruEntry = { ...entry, value: cacheStream };
-
-        this.lruLayer.writeEntry(key, { entry: lruEntry, size });
+        this.ephemeralLayer.writeEntry(key, { entry: { ...entry, value: cacheStream }, size });
 
         try {
-            await this.redisLayer.writeEntry(key, { entry: { ...entry, value: data } });
+            await this.persistentLayer.writeEntry(key, { entry: { ...entry, value: data } });
 
-            resolvePending({ ...lruEntry, value: responseStream });
+            resolvePending({ ...entry, value: responseStream });
             this.logOperation("SET", "REVALIDATED", "NEW", key);
         } catch (error) {
             resolvePending(undefined);
             this.logOperation("SET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
             if (error instanceof CacheError) throw error;
-        } finally {
-            this.pendingSetsLayer.delete(key);
         }
     }
 
     async refreshTags() {
-        // TODO: should I populate records or record tags from redis into memory cache here?
+        // TODO: should we populate entry records or entry tags from persistent cache into ephemeral cache here?
     }
 
     async getExpiration() {
@@ -155,17 +145,18 @@ export class CacheHandler {
     }
 
     async updateTags(tags: string[], durations?: Durations) {
+        const tagsKey = tags.join(",");
         if (!tags.length) {
-            this.logOperation("UPDATE_TAGS", "REVALIDATING", "NONE", tags.join(","));
+            this.logOperation("UPDATE_TAGS", "REVALIDATING", "NONE", tagsKey);
             return;
         }
 
-        const tagsKey = tags.join(",");
-        this.logOperation("UPDATE_TAGS", "REVALIDATING", "REDIS", tagsKey);
+        this.logOperation("UPDATE_TAGS", "REVALIDATING", "MEMORY", tagsKey);
+        this.ephemeralLayer.updateTags(tags, durations);
 
         try {
-            await this.redisLayer.updateTags(tags, durations);
-            this.logOperation("UPDATE_TAGS", "REVALIDATING", "MEMORY", tagsKey);
+            this.logOperation("UPDATE_TAGS", "REVALIDATING", "REDIS", tagsKey);
+            await this.persistentLayer.updateTags(tags, durations);
         } catch (error) {
             this.logOperation(
                 "UPDATE_TAGS",
@@ -176,13 +167,21 @@ export class CacheHandler {
             );
             if (error instanceof CacheError) throw error;
         }
-        this.lruLayer.updateTags(tags, durations);
     }
 
-    async getKeys(): Promise<{ redisKeys: string[]; lruKeys: string[] }> {
-        const redisKeys = await this.redisLayer.getKeys();
-        const lruKeys = this.lruLayer.getKeys();
+    async checkIsReady() {
+        const [ephemeralReady, persistentReady] = await Promise.all([
+            this.ephemeralLayer.checkIsReady(),
+            this.persistentLayer.checkIsReady(),
+        ]);
+        return ephemeralReady && persistentReady;
+    }
 
-        return { redisKeys, lruKeys };
+    async getKeys(): Promise<{ ephemeralKeys: string[]; persistentKeys: string[] }> {
+        const [ephemeralKeys, persistentKeys] = await Promise.all([
+            this.ephemeralLayer.getKeys(),
+            this.persistentLayer.getKeys(),
+        ]);
+        return { ephemeralKeys, persistentKeys };
     }
 }
