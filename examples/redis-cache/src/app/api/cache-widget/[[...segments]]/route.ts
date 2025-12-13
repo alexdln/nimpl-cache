@@ -1,13 +1,13 @@
-import { getKeys, getKeyDetails } from "@nimpl/cache-widget/route";
+import { getCacheData } from "@nimpl/cache-tools";
 
-export const GET = async (_request: Request, { params }: { params: Promise<{ segments: string[] }> }) => {
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const cacheHandler = require("../../../../../cache-handler.js");
+
+export const GET = async (_request: Request, { params }: { params: Promise<{ segments?: string[] }> }) => {
     const { segments } = await params;
+    const data = await getCacheData(cacheHandler, segments);
 
-    if (!segments?.length) {
-        return new Response(JSON.stringify(await getKeys()));
-    }
+    if (!data) return new Response("", { status: 404 });
 
-    if (segments.length > 1) return new Response("", { status: 404 });
-
-    return new Response(JSON.stringify(await getKeyDetails(segments[0])));
+    return new Response(JSON.stringify(data));
 };
