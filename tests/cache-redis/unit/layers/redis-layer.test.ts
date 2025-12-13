@@ -8,6 +8,7 @@ const createMockRedisClient = () => ({
     status: "ready" as "ready" | "connecting" | "end",
     connect: jest.fn().mockResolvedValue(undefined),
     get: jest.fn(),
+    getBuffer: jest.fn(),
     set: jest.fn(),
     del: jest.fn(),
     unlink: jest.fn(),
@@ -49,23 +50,23 @@ describe("RedisLayer", () => {
     });
 
     describe("checkIsReady", () => {
-        it("should return true when redis is ready", () => {
+        it("should return true when redis is ready", async () => {
             mockRedisClient.status = "ready";
-            expect(layer.checkIsReady()).toBe(true);
+            expect(await layer.checkIsReady()).toBe(true);
         });
 
-        it("should return false when redis is not ready", () => {
+        it("should return false when redis is not ready", async () => {
             mockRedisClient.status = "connecting";
-            expect(layer.checkIsReady()).toBe(false);
+            expect(await layer.checkIsReady()).toBe(false);
         });
     });
 
-    describe("readEntry", () => {
+    describe("get", () => {
         it("should return undefined when not connected", async () => {
             mockRedisClient.status = "end";
             mockRedisClient.connect.mockResolvedValue(undefined);
 
-            const result = await layer.readEntry("test-key");
+            const result = await layer.get("test-key");
             expect(result).toBeUndefined();
         });
 
@@ -73,7 +74,7 @@ describe("RedisLayer", () => {
             mockRedisClient.status = "ready";
             mockRedisClient.get.mockResolvedValue(null);
 
-            const result = await layer.readEntry("test-key");
+            const result = await layer.get("test-key");
             expect(result).toBeUndefined();
             expect(mockRedisClient.get).toHaveBeenCalledWith("nic:meta:test-key");
         });
@@ -91,7 +92,7 @@ describe("RedisLayer", () => {
 
             mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(expiredMeta)).mockResolvedValueOnce(null);
 
-            const result = await layer.readEntry("test-key");
+            const result = await layer.get("test-key");
             expect(result).toBeNull();
         });
 
@@ -108,7 +109,7 @@ describe("RedisLayer", () => {
 
             mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(meta)).mockResolvedValueOnce(null);
 
-            const result = await layer.readEntry("test-key");
+            const result = await layer.get("test-key");
             expect(result).toBeUndefined();
             expect(mockRedisClient.del).toHaveBeenCalledWith("nic:meta:test-key");
         });
@@ -124,11 +125,11 @@ describe("RedisLayer", () => {
                 revalidate: 5,
             };
             const buffer = Buffer.from("test-data");
-            const base64Data = buffer.toString("base64");
 
-            mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(meta)).mockResolvedValueOnce(base64Data);
+            mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(meta));
+            mockRedisClient.getBuffer.mockResolvedValueOnce(buffer);
 
-            const result = await layer.readEntry("test-key");
+            const result = await layer.get("test-key");
 
             expect(result).toBeDefined();
             expect(result?.entry.tags).toEqual(["tag1"]);
@@ -148,16 +149,16 @@ describe("RedisLayer", () => {
                 revalidate: 0.5,
             };
             const buffer = Buffer.from("test-data");
-            const base64Data = buffer.toString("base64");
 
-            mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(meta)).mockResolvedValueOnce(base64Data);
+            mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(meta));
+            mockRedisClient.getBuffer.mockResolvedValueOnce(buffer);
 
-            const result = await layer.readEntry("test-key");
+            const result = await layer.get("test-key");
             expect(result?.status).toBe("revalidate");
         });
     });
 
-    describe("writeEntry", () => {
+    describe("set", () => {
         it("should write entry to redis", async () => {
             mockRedisClient.status = "ready";
             const now = performance.timeOrigin + performance.now();
@@ -168,7 +169,12 @@ describe("RedisLayer", () => {
                 stale: 0,
                 expire: 10,
                 revalidate: 5,
-                value: buffer,
+                value: new ReadableStream({
+                    start(controller) {
+                        controller.enqueue(buffer);
+                        controller.close();
+                    },
+                }),
             };
 
             const mockPipeline = {
@@ -180,7 +186,7 @@ describe("RedisLayer", () => {
             };
             mockRedisClient.pipeline = jest.fn().mockReturnValue(mockPipeline);
 
-            await layer.writeEntry("test-key", { entry });
+            await layer.set("test-key", entry);
 
             expect(mockRedisClient.pipeline).toHaveBeenCalled();
             expect(mockPipeline.set).toHaveBeenCalledTimes(2);
@@ -196,7 +202,12 @@ describe("RedisLayer", () => {
                 stale: 0,
                 expire: 10,
                 revalidate: 5,
-                value: buffer,
+                value: new ReadableStream({
+                    start(controller) {
+                        controller.enqueue(buffer);
+                        controller.close();
+                    },
+                }),
             };
 
             const mockPipeline = {
@@ -205,7 +216,7 @@ describe("RedisLayer", () => {
             };
             mockRedisClient.pipeline = jest.fn().mockReturnValue(mockPipeline);
 
-            await expect(layer.writeEntry("test-key", { entry })).rejects.toThrow(CacheError);
+            await expect(layer.set("test-key", entry)).rejects.toThrow(CacheError);
         });
     });
 
@@ -305,7 +316,7 @@ describe("RedisLayer", () => {
 
             const waitThrowLayer = new RedisLayer({ connectionStrategy: "wait-throw" }, mockLogger);
 
-            await expect(waitThrowLayer.readEntry("test-key")).rejects.toThrow(CacheConnectionError);
+            await expect(waitThrowLayer.get("test-key")).rejects.toThrow(CacheConnectionError);
         });
 
         it("should return undefined with ignore strategy", async () => {
@@ -317,7 +328,7 @@ describe("RedisLayer", () => {
 
             const ignoreLayer = new RedisLayer({ connectionStrategy: "ignore" }, mockLogger);
 
-            const result = await ignoreLayer.readEntry("test-key");
+            const result = await ignoreLayer.get("test-key");
             expect(result).toBeUndefined();
         });
     });

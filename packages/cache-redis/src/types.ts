@@ -52,5 +52,7 @@ export type RedisConnectionStrategy = "ignore" | "wait-ignore" | "wait-throw" | 
 export type Options = {
     logger?: Logger;
     redisOptions?: RedisOptions & { url?: string; connectionStrategy?: RedisConnectionStrategy };
-    lruOptions?: LRUCache<string, CacheEntry, unknown> | LRUCache.Options<string, CacheEntry, unknown>;
+    lruOptions?: Omit<LRUCache<string, CacheEntry, unknown> | LRUCache.Options<string, CacheEntry, unknown>, "ttl"> & {
+        ttl?: number | "auto";
+    };
 };

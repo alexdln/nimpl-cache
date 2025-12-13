@@ -12,8 +12,10 @@ export class LruLayer {
     private lruTtl: number | "auto";
 
     constructor(options: Options["lruOptions"], logger: Logger) {
-        this.lruTtl = (options?.ttl ?? (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) ?? DEFAULT_LRU_TTL) || 0;
+        const { ttl, ...lruOptions } = options || {};
+        this.lruTtl = (ttl ?? (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) ?? DEFAULT_LRU_TTL) || 0;
         this.logger = logger;
+
         this.lruClient = new LRUCache<string, CacheEntry, unknown>({
             maxSize:
                 options?.maxSize ||
@@ -21,7 +23,7 @@ export class LruLayer {
                 DEFAULT_LRU_MAX_SIZE,
             sizeCalculation: (entry) => entry.size,
             ttlAutopurge: true,
-            ...(options || {}),
+            ...(lruOptions || {}),
         });
     }
 
@@ -54,12 +56,15 @@ export class LruLayer {
         const entry = await pendingEntry;
         const [cacheStream, responseStream] = entry.value.tee();
         entry.value = responseStream;
-
         let size = 0;
         for await (const chunk of cacheStream) {
-            size += chunk.byteLength;
+            size += Buffer.byteLength(chunk);
         }
-        this.lruClient.set(key, { entry, size, status: "valid" }, { ttl: this.calculateLruTtl(entry.expire) });
+        this.lruClient.set(
+            key,
+            { entry, size: size || 1, status: "valid" },
+            { ttl: this.calculateLruTtl(entry.expire) },
+        );
     }
 
     async delete(key: string) {
