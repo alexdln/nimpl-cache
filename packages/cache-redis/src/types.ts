@@ -18,11 +18,12 @@ export type Entry = Metadata & {
     value: ReadableStream | WebReadableStream;
 };
 
-export type RedisCacheEntry = string;
+export type CacheStatus = "expire" | "revalidate" | "valid";
 
-export type LruCacheEntry = {
+export type CacheEntry = {
     entry: Entry;
     size: number;
+    status: CacheStatus;
 };
 
 export type LogData = {
@@ -49,8 +50,9 @@ export type Logger = (logData: LogData) => void;
 export type RedisConnectionStrategy = "ignore" | "wait-ignore" | "wait-throw" | "wait-exit";
 
 export type Options = {
-    lruTtl?: number | "auto";
     logger?: Logger;
     redisOptions?: RedisOptions & { url?: string; connectionStrategy?: RedisConnectionStrategy };
-    lruOptions?: LRUCache<string, LruCacheEntry, unknown> | LRUCache.Options<string, LruCacheEntry, unknown>;
+    lruOptions?: Omit<LRUCache<string, CacheEntry, unknown> | LRUCache.Options<string, CacheEntry, unknown>, "ttl"> & {
+        ttl?: number | "auto";
+    };
 };

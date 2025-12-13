@@ -1,24 +1,20 @@
-import { type Entry } from "../types";
+import { ReadableStream as WebReadableStream } from "node:stream/web";
 
-export const readChunks = async (entry: Pick<Entry, "value">) => {
-    const reader = entry.value.getReader();
-    const chunks = [];
+export const streamToBuffer = async (
+    stream: ReadableStream<Uint8Array> | WebReadableStream<Uint8Array>,
+): Promise<Buffer> => {
+    const buffers: Buffer[] = [];
+    let totalLength = 0;
 
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-
-            if (done) break;
-
-            chunks.push(value);
-        }
-    } finally {
-        reader.releaseLock();
+    for await (const chunk of stream) {
+        buffers.push(Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+        totalLength += chunk.byteLength;
     }
-    return chunks;
+
+    return Buffer.concat(buffers, totalLength);
 };
 
-export const createStreamFromBuffer = (buffer: Buffer): ReadableStream => {
+export const bufferToStream = (buffer: Buffer): ReadableStream => {
     return new ReadableStream({
         start(controller) {
             controller.enqueue(buffer);

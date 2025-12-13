@@ -17,8 +17,13 @@ type CacheEntry = {
 export type CacheHandler = {
     get: (key: string) => Promise<CacheEntry | undefined | null>;
     set: (key: string, value: Promise<CacheEntry>) => Promise<void>;
-    redisLayer: {
-        getKeys: () => Promise<KeysData>;
-        readEntry: (key: string) => Promise<{ entry: CacheEntry; size: number; status: string } | null | undefined>;
+    keys: () => Promise<KeysData>;
+    ephemeralLayer: {
+        get: (key: string) => Promise<{ entry: CacheEntry; size: number; status: string } | null | undefined>;
+        keys: () => Promise<KeysData>;
+    };
+    persistentLayer: {
+        get: (key: string) => Promise<{ entry: CacheEntry; size: number; status: string } | null | undefined>;
+        keys: () => Promise<KeysData>;
     };
 };

@@ -11,6 +11,7 @@
   "dependencies": {
     "@nimpl/cache-redis": "workspace:*",
     "@nimpl/cache-widget": "workspace:*",
+    "@nimpl/cache-tools": "workspace:*",
     "next": "16.0.7",
     "react": "19.2.1",
     "react-dom": "19.2.1"

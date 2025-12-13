@@ -35,6 +35,9 @@ importers:
       '@nimpl/cache-redis':
         specifier: workspace:*
         version: link:../../packages/cache-redis
+      '@nimpl/cache-tools':
+        specifier: workspace:*
+        version: link:../../packages/cache-tools
       '@nimpl/cache-widget':
         specifier: workspace:*
         version: link:../../packages/cache-widget

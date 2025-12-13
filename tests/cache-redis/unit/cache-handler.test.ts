@@ -42,21 +42,21 @@ describe("CacheHandler", () => {
     });
 
     describe("constructor", () => {
-        it("should create handler with default options", () => {
+        it("should create handler with default options", async () => {
             const defaultHandler = new CacheHandler();
-            expect(defaultHandler.checkIsReady()).toBeDefined();
+            expect(await defaultHandler.checkIsReady()).toBeDefined();
         });
 
-        it("should create handler with custom logger", () => {
+        it("should create handler with custom logger", async () => {
             const customLogger = jest.fn();
             const customHandler = new CacheHandler({ logger: customLogger });
-            expect(customHandler.checkIsReady()).toBeDefined();
+            expect(await customHandler.checkIsReady()).toBeDefined();
         });
     });
 
     describe("checkIsReady", () => {
-        it("should return true when both layers are ready", () => {
-            expect(handler.checkIsReady()).toBe(true);
+        it("should return true when both layers are ready", async () => {
+            expect(await handler.checkIsReady()).toBe(true);
         });
     });
 

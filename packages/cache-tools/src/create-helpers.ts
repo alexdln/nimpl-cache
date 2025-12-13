@@ -1,14 +1,13 @@
 import { type CacheHandler, type KeysData } from "./lib/types";
-import { readStream } from "./lib/stream";
+import { streamToRaw } from "./lib/stream";
 
 export const getKeys = async (cacheHandler: CacheHandler): Promise<KeysData> => {
-    const keys = await cacheHandler.redisLayer.getKeys();
-    return keys;
+    return cacheHandler.persistentLayer.keys();
 };
 
 export const getKeyDetails = async (cacheHandler: CacheHandler, key: string) => {
     try {
-        const cacheEntry = await cacheHandler.redisLayer.readEntry(key);
+        const cacheEntry = await cacheHandler.persistentLayer.get(key);
 
         if (!cacheEntry) {
             return {
@@ -23,14 +22,7 @@ export const getKeyDetails = async (cacheHandler: CacheHandler, key: string) => 
         const { entry, size, status } = cacheEntry;
         const [cacheStream, responseStream] = entry.value.tee();
         entry.value = cacheStream;
-        const buffer = await readStream(responseStream);
-        let value: string | null = null;
-
-        try {
-            value = buffer.toString("utf-8");
-        } catch {
-            value = buffer.toString("base64");
-        }
+        const value = await streamToRaw(responseStream);
 
         return {
             key,

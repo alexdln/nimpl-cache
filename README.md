@@ -45,6 +45,12 @@ REDIS_URL=redis://localhost:6379
 
 [Read more about @nimpl/cache-widget](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-widget)
 
+## @nimpl/cache-tools
+
+`@nimpl/cache-tools` provides utilities for working with `@nimpl/cache`-like cache handlers, including data retrieval and function caching. It offers helpers for creating cached functions and API routes for cache inspection tools like `@nimpl/cache-widget`.
+
+[Read more about @nimpl/cache-tools](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-tools)
+
 ## Legacy Packages
 
 > **Note**: The following packages are outdated and not actively maintained for now. They will be updated and improved soon:
