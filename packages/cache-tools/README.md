@@ -1,6 +1,6 @@
 # @nimpl/cache-tools
 
-Utilities for working with cache handlers, including data retrieval and function caching.
+Utilities for working with `@nimpl/cache`-like cache handlers, including data retrieval and function caching. It offers helpers for creating cached functions and API routes for cache inspection tools like `@nimpl/cache-widget`.
 
 ## Installation
 
@@ -86,7 +86,7 @@ export const GET = async (
 };
 ```
 
-Use `getCacheData` as the single entry point for the widget.
+Use `getCacheData` as the single entry point for the [widget](https://www.npmjs.com/package/@nimpl/cache-widget).
 
 ## License
 

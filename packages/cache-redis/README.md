@@ -58,8 +58,8 @@ export default nextConfig;
 The cache handler accepts the following parameters (all optional):
 
 - `logger` (Logger): Custom logging function that receives a log data object with `type`, `status`, `source`, `key`, and optional `message` properties. Use this to integrate with your logging infrastructure (_e.g., structured logging, metrics collection_). Default: custom console logger (_enabled when `NEXT_PRIVATE_DEBUG_CACHE` or `NIC_LOGGER` environment variable is set_)
-- `lruTtl` (number | "auto"): Time-to-live for LRU cache entries in seconds. Use `"auto"` to derive TTL from entry expiration. Prefer 0 or minimal values for multi-pod environments. Default: `"auto"`
 - `lruOptions` (LRUCache.Options | LRUCache): Options for the [`LRU cache`](https://www.npmjs.com/package/lru-cache) instance. Use `maxSize` property to set the maximum cache size in bytes. Default: `{ maxSize: 50 * 1024 * 1024 }` (50MB) or value from `LRU_CACHE_MAX_SIZE` env var (in MB)
+  - `lruOptions.ttl` (number | "auto"): Time-to-live for LRU cache entries in seconds. Use `"auto"` to derive TTL from entry expiration. Prefer minimal values for multi-pod environments. Default: `"auto"`
 - `redisOptions` (RedisOptions & { url?: string; connectionStrategy?: RedisConnectionStrategy }): Redis connection options from [`ioredis`](https://www.npmjs.com/package/ioredis).
 - `redisOptions.url` specify the Redis connection URL. Default: `process.env.REDIS_URL || "redis://localhost:6379"`
 - `redisOptions.connectionStrategy` how the handler behaves when Redis connection fails. Default: `"ignore"`
@@ -86,7 +86,7 @@ Designed for Kubernetes and multi-instance deployments. All pods could share the
 - **Consistent Invalidation**: Tag-based cache invalidation propagates across all pods
 - **Reduced Redundancy**: Avoids duplicate cache entries across instances
 
-When a pod receives a cache miss, it checks Redis. If found, the entry is loaded into the pod's local LRU cache and returned. Subsequent requests for the same key benefit from the local cache until expiration.
+When a pod receives a cache miss in-memory, it checks Redis. If found, the entry is loaded into the pod's local LRU cache and returned. Subsequent requests for the same key benefit from the local cache until expiration.
 
 ## Usage
 
@@ -194,7 +194,7 @@ import cacheHandler from "@nimpl/cache-redis";
 // const cacheHandler = require("./path/to/local-cache-handler.js");
 
 export async function GET() {
-  return Response.json({ ready: cacheHandler.checkIsReady() });
+  return Response.json({ ready: await cacheHandler.checkIsReady() });
 }
 ```
 
