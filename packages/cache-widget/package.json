@@ -58,7 +58,7 @@
     "@rollup/plugin-typescript": "12.3.0",
     "@types/node": "24.10.1",
     "@types/react": "19.2.7",
-    "react": "19.2.1",
+    "react": "19.2.3",
     "rollup": "4.53.3",
     "rollup-plugin-scss": "4.0.1",
     "rollup-preserve-directives": "1.1.3",
