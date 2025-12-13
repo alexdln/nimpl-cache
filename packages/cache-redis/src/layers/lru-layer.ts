@@ -1,11 +1,11 @@
 import { LRUCache } from "lru-cache";
 
-import { type Durations, type Entry, type Logger, type LruCacheEntry, type Options } from "../types";
+import { type Options, type Logger, type Durations, type Entry, type CacheEntry } from "../types";
 import { DEFAULT_LRU_MAX_SIZE, DEFAULT_LRU_TTL } from "../lib/constants";
 import { getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
 
 export class LruLayer {
-    private lruClient: LRUCache<string, LruCacheEntry, unknown>;
+    private lruClient: LRUCache<string, CacheEntry, unknown>;
 
     private logger: Logger;
 
@@ -14,7 +14,7 @@ export class LruLayer {
     constructor(options: Options["lruOptions"], logger: Logger) {
         this.lruTtl = (options?.ttl ?? (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) ?? DEFAULT_LRU_TTL) || 0;
         this.logger = logger;
-        this.lruClient = new LRUCache<string, LruCacheEntry, unknown>({
+        this.lruClient = new LRUCache<string, CacheEntry, unknown>({
             maxSize:
                 options?.maxSize ||
                 (process.env.LRU_MAX_SIZE && parseInt(process.env.LRU_MAX_SIZE)) ||
@@ -29,7 +29,7 @@ export class LruLayer {
         return this.lruTtl === "auto" ? expire * 1000 : this.lruTtl * 1000;
     }
 
-    readEntry(key: string) {
+    async get(key: string): Promise<CacheEntry | undefined | null> {
         const memoryEntry = this.lruClient.get(key);
         if (!memoryEntry) return undefined;
 
@@ -50,30 +50,36 @@ export class LruLayer {
         };
     }
 
-    writeEntry(key: string, cacheEntry: LruCacheEntry) {
-        this.lruClient.set(key, cacheEntry, { ttl: this.calculateLruTtl(cacheEntry.entry.expire) });
+    async set(key: string, pendingEntry: Promise<Entry> | Entry) {
+        const entry = await pendingEntry;
+
+        let size = 0;
+        for await (const chunk of entry.value) {
+            size += chunk.byteLength;
+        }
+        this.lruClient.set(key, { entry, size, status: "valid" }, { ttl: this.calculateLruTtl(entry.expire) });
     }
 
-    delete(key: string) {
+    async delete(key: string) {
         this.lruClient.delete(key);
     }
 
-    updateTags(tags: string[], durations?: Durations) {
+    async updateTags(tags: string[], durations?: Durations) {
         const now = performance.timeOrigin + performance.now();
         this.lruClient.forEach((value, key) => {
             const updatedMetadata = getUpdatedMetadata(value.entry, tags, durations, now);
             if (updatedMetadata !== value.entry) {
                 const updatedEntry: Entry = { ...value.entry, ...updatedMetadata };
-                this.writeEntry(key, { ...value, entry: updatedEntry });
+                this.lruClient.set(key, { ...value, entry: updatedEntry });
             }
         });
     }
 
-    checkIsReady() {
+    async checkIsReady() {
         return true;
     }
 
-    getKeys(): string[] {
+    async keys(): Promise<string[]> {
         const keys: string[] = [];
         this.lruClient.forEach((_, key) => {
             keys.push(key);

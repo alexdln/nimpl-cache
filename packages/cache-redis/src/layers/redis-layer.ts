@@ -3,10 +3,11 @@ import Redis from "ioredis";
 import {
     type Options,
     type Logger,
-    type Metadata,
-    type Entry,
-    type Durations,
     type RedisConnectionStrategy,
+    type Metadata,
+    type Durations,
+    type Entry,
+    type CacheEntry,
 } from "../types";
 import { PREFIX_META } from "../lib/constants";
 import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
@@ -25,9 +26,9 @@ export class RedisLayer {
 
     private pendingConnectLayer = new PendingsLayer<boolean>();
 
-    private pendingGetKeysLayer = new PendingsLayer<string[]>();
+    private pendingKeysLayer = new PendingsLayer<string[]>();
 
-    private pendingReadEntryLayer = new PendingsLayer<{ entry: Entry; size: number; status: string } | undefined>();
+    private pendingGetsLayer = new PendingsLayer<CacheEntry | undefined | null>();
 
     private keyPrefix: string = "";
 
@@ -146,22 +147,20 @@ export class RedisLayer {
         return isConnected;
     }
 
-    async readEntry(key: string) {
+    async get(key: string): Promise<CacheEntry | undefined | null> {
         const connected = await this.connect();
         if (!connected) return undefined;
 
-        const activeReadEntryPromise = this.pendingReadEntryLayer.get(key);
-        if (activeReadEntryPromise) {
-            const cacheEntry = await activeReadEntryPromise;
-            if (!cacheEntry) {
-                return cacheEntry;
-            }
+        const pendingGet = this.pendingGetsLayer.get(key);
+        if (pendingGet) {
+            const cacheEntry = await pendingGet;
+            if (!cacheEntry) return cacheEntry;
             const [cacheStream, responseStream] = cacheEntry.entry.value.tee();
             cacheEntry.entry.value = cacheStream;
             return { ...cacheEntry, entry: { ...cacheEntry.entry, value: responseStream } };
         }
 
-        const resolvePending = this.pendingReadEntryLayer.set(key);
+        const resolvePending = this.pendingGetsLayer.set(key);
 
         const { cacheKey, metaKey } = getCacheKeys(key, this.keyPrefix);
         const metaEntry = await this.redisClient.get(metaKey);
@@ -173,7 +172,7 @@ export class RedisLayer {
         const metaData: Metadata = JSON.parse(metaEntry);
         const status = getCacheStatus(metaData.timestamp, metaData.revalidate, metaData.expire);
         if (status === "expire") {
-            resolvePending(undefined);
+            resolvePending(null);
             return null;
         }
 
@@ -194,13 +193,20 @@ export class RedisLayer {
         return cacheEntry;
     }
 
-    async writeEntry(key: string, { entry }: { entry: Metadata & { value: Buffer<ArrayBuffer> } }) {
+    async set(key: string, pendingEntry: Promise<Entry> | Entry) {
         const connected = await this.connect();
         if (!connected) return;
 
+        const entry = await pendingEntry;
         const { cacheKey, metaKey } = getCacheKeys(key, this.keyPrefix);
         const pipeline = this.redisClient.pipeline();
-        pipeline.set(cacheKey, entry.value.toString("base64"), "EX", entry.expire);
+        const chunks: Uint8Array[] = [];
+
+        for await (const chunk of entry.value) {
+            chunks.push(chunk);
+        }
+
+        pipeline.set(cacheKey, Buffer.concat(chunks), "EX", entry.expire);
         pipeline.set(
             metaKey,
             JSON.stringify({
@@ -272,18 +278,18 @@ export class RedisLayer {
         await this.redisClient.del(cacheKey, metaKey);
     }
 
-    checkIsReady() {
+    async checkIsReady() {
         return this.redisClient.status === "ready";
     }
 
-    async getKeys(): Promise<string[]> {
+    async keys(): Promise<string[]> {
         const connected = await this.connect();
         if (!connected) return [];
 
-        const activeGetKeysPromise = this.pendingGetKeysLayer.get("keys");
-        if (activeGetKeysPromise) return activeGetKeysPromise;
+        const pendingKeys = this.pendingKeysLayer.get("keys");
+        if (pendingKeys) return pendingKeys;
 
-        const resolvePending = this.pendingGetKeysLayer.set("keys");
+        const resolvePending = this.pendingKeysLayer.set("keys");
 
         const pattern = `${this.keyPrefix}${PREFIX_META}*`;
         const keys: string[] = [];
@@ -298,7 +304,6 @@ export class RedisLayer {
         } while (cursor !== "0");
 
         resolvePending(keys);
-
         return keys;
     }
 }

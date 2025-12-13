@@ -1,5 +1,4 @@
 import { type Durations, type Logger, type Entry, type LogData, type Options } from "./types";
-import { readChunks } from "./lib/stream";
 import { logger as defaultLogger } from "./lib/logger";
 import { RedisLayer } from "./layers/redis-layer";
 import { LruLayer } from "./layers/lru-layer";
@@ -45,7 +44,7 @@ export class CacheHandler {
             return { ...pendingSet, value: responseStream };
         }
 
-        const ephemeralCache = this.ephemeralLayer.readEntry(key);
+        const ephemeralCache = await this.ephemeralLayer.get(key);
         if (ephemeralCache) {
             if (ephemeralCache.status === "revalidate") {
                 this.logOperation("GET", "REVALIDATING", "MEMORY", key);
@@ -70,14 +69,14 @@ export class CacheHandler {
         const resolvePending = this.pendingGetsLayer.set(key);
 
         try {
-            const persistentCache = await this.persistentLayer.readEntry(key);
+            const persistentCache = await this.persistentLayer.get(key);
 
             if (persistentCache === null) {
                 await this.persistentLayer.delete(key);
             }
 
             if (!persistentCache) {
-                if (ephemeralCache === null) this.ephemeralLayer.delete(key);
+                if (ephemeralCache === null) await this.ephemeralLayer.delete(key);
                 this.logOperation(
                     "GET",
                     persistentCache === null ? "EXPIRED" : "MISS",
@@ -92,7 +91,7 @@ export class CacheHandler {
             const [cacheStream, responseStream] = entry.value.tee();
             entry.value = cacheStream;
 
-            this.ephemeralLayer.writeEntry(key, persistentCache);
+            await this.ephemeralLayer.set(key, entry);
             const responseEntry = { ...entry, value: responseStream };
 
             if (status === "revalidate") {
@@ -116,16 +115,12 @@ export class CacheHandler {
 
         const entry = await pendingEntry;
         const [cacheStreamMain, responseStream] = entry.value.tee();
-        const [cacheStream, cacheStreamRead] = cacheStreamMain.tee();
+        const [cacheStreamEphemeral, cacheStreamPersistent] = cacheStreamMain.tee();
 
-        const chunks = await readChunks(cacheStreamRead);
-        const data = Buffer.concat(chunks.map(Buffer.from));
-        const size = data.byteLength || 1;
-
-        this.ephemeralLayer.writeEntry(key, { entry: { ...entry, value: cacheStream }, size });
+        await this.ephemeralLayer.set(key, { ...entry, value: cacheStreamEphemeral });
 
         try {
-            await this.persistentLayer.writeEntry(key, { entry: { ...entry, value: data } });
+            await this.persistentLayer.set(key, { ...entry, value: cacheStreamPersistent });
 
             resolvePending({ ...entry, value: responseStream });
             this.logOperation("SET", "REVALIDATED", "NEW", key);
@@ -152,7 +147,7 @@ export class CacheHandler {
         }
 
         this.logOperation("UPDATE_TAGS", "REVALIDATING", "MEMORY", tagsKey);
-        this.ephemeralLayer.updateTags(tags, durations);
+        await this.ephemeralLayer.updateTags(tags, durations);
 
         try {
             this.logOperation("UPDATE_TAGS", "REVALIDATING", "REDIS", tagsKey);
@@ -177,10 +172,10 @@ export class CacheHandler {
         return ephemeralReady && persistentReady;
     }
 
-    async getKeys(): Promise<{ ephemeralKeys: string[]; persistentKeys: string[] }> {
+    async keys(): Promise<{ ephemeralKeys: string[]; persistentKeys: string[] }> {
         const [ephemeralKeys, persistentKeys] = await Promise.all([
-            this.ephemeralLayer.getKeys(),
-            this.persistentLayer.getKeys(),
+            this.ephemeralLayer.keys(),
+            this.persistentLayer.keys(),
         ]);
         return { ephemeralKeys, persistentKeys };
     }

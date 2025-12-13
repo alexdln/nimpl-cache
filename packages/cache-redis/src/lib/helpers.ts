@@ -1,4 +1,4 @@
-import { type Durations, type Metadata } from "../types";
+import { type CacheStatus, type Durations, type Metadata } from "../types";
 import { PREFIX_ENTRY, PREFIX_META } from "./constants";
 
 export const getCacheKeys = (key: string, keyPrefix: string = "") => {
@@ -8,7 +8,7 @@ export const getCacheKeys = (key: string, keyPrefix: string = "") => {
     };
 };
 
-export const getCacheStatus = (timestamp: number, revalidate: number, expire: number) => {
+export const getCacheStatus = (timestamp: number, revalidate: number, expire: number): CacheStatus => {
     const now = performance.timeOrigin + performance.now();
     if (now > timestamp + expire * 1000) return "expire";
     if (now > timestamp + revalidate * 1000) return "revalidate";
