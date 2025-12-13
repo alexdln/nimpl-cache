@@ -1,6 +1,5 @@
-import { Readable } from "node:stream";
-
 import { type CacheHandler, type Metadata } from "./lib/types";
+import { objectToStream, streamToRaw } from "./lib/stream";
 
 export const cache =
     <Params extends unknown[], Callback extends (...args: Params) => Promise<unknown>>(
@@ -13,14 +12,11 @@ export const cache =
     ) =>
     async (...args: Params): Promise<Awaited<ReturnType<Callback>>> => {
         const { key, duration, cacheHandler } = options;
-        const cached = await cacheHandler.get(key);
+        const cacheEntry = await cacheHandler.get(key);
 
         try {
-            if (cached?.value && cached.value instanceof ReadableStream) {
-                return (cached.value as ReadableStream<string>)
-                    .getReader()
-                    .read()
-                    .then(({ value }) => value && JSON.parse(value));
+            if (cacheEntry?.value && cacheEntry.value instanceof ReadableStream) {
+                return streamToRaw(cacheEntry.value).then(JSON.parse);
             }
         } catch (error) {
             console.error(error);
@@ -30,7 +26,7 @@ export const cache =
         await cacheHandler.set(
             key,
             Promise.resolve({
-                value: Readable.toWeb(Readable.from(JSON.stringify(data))),
+                value: objectToStream(data),
                 tags: [],
                 timestamp: performance.timeOrigin + performance.now(),
                 stale: duration?.stale || 30,

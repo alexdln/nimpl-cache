@@ -1,18 +1,37 @@
 import { type ReadableStream as WebReadableStream } from "stream/web";
 
-export const readStream = async (stream: ReadableStream | WebReadableStream): Promise<Buffer> => {
-    const reader = stream.getReader();
-    const chunks: Uint8Array[] = [];
+export const streamToBuffer = async (
+    stream: ReadableStream<Uint8Array> | WebReadableStream<Uint8Array>,
+): Promise<Buffer> => {
+    const buffers: Buffer[] = [];
+    let totalLength = 0;
 
-    try {
-        while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
-            if (value) chunks.push(value);
-        }
-    } finally {
-        reader.releaseLock();
+    for await (const chunk of stream) {
+        buffers.push(Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength));
+        totalLength += chunk.byteLength;
     }
 
-    return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
+    return Buffer.concat(buffers, totalLength);
+};
+
+export const streamToRaw = async (
+    stream: ReadableStream<Uint8Array> | WebReadableStream<Uint8Array>,
+): Promise<string> => {
+    let base64 = "";
+    for await (const chunk of stream) {
+        base64 += Buffer.from(chunk.buffer, chunk.byteOffset, chunk.byteLength).toString("utf-8");
+    }
+    return base64;
+};
+
+export const objectToStream = (data: unknown) => {
+    const encoder = new TextEncoder();
+
+    const stream = new ReadableStream<Uint8Array>({
+        start(controller) {
+            controller.enqueue(encoder.encode(JSON.stringify(data)));
+            controller.close();
+        },
+    });
+    return stream;
 };
