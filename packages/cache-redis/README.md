@@ -130,8 +130,10 @@ You can initialize the cache handler with custom configuration in an independent
 // cache-handlers/redis.js
 import { CacheHandler } from "@nimpl/cache-redis/cache-handler";
 
-module.exports = new CacheHandler(/* Options */);
+global.cacheHandler ||= new CacheHandler(/* Options */);
 ```
+
+> **Note**: It is recommended to write to `global`, as otherwise the instance will be created differently for Next.js and for your independent use (for example, for cache-widget or your internal utilities). As a result, in-memory entries will be different, and will also be duplicated
 
 ```ts
 import { type NextConfig } from "next/types";
@@ -205,6 +207,17 @@ export async function GET() {
 Currently in Next.js background revalidation doesn't work correctly with dynamic API on page. This limitation exists for all caching solutions, including Next.js default cache-handler
 
 In serverless environments, the `CacheHandler` is initialized on each request, which makes the in-memory LRU cache layer less usable since it's reset between invocations. The cache handler will still function correctly but will primarily rely on Redis for caching in these environments.
+
+## Examples
+
+- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)**
+  - Minimal Next.js example demonstrating redis cache handler and widget setup
+
+- **[React Router Example](https://router-bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/react-router-bsky)
+  - Demonstrates cache widget integration with React Router 7 and redis cache handler
+
+- **[Next.js Example](https://bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/nextjs-bsky)
+  - Shows cache widget usage in a Next.js cacheComponents application and redis cache handler
 
 ## License
 

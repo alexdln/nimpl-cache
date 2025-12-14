@@ -57,8 +57,9 @@ Call `getCachedFeed` instead of the raw fetcher to reuse cached payloads across 
 // app/api/cache-widget/route.ts (React Router)
 import { getCacheData } from "@/cache-handler";
 
-export const loader = async ({ params }: { params: { id?: string } }) => {
-  const data = await getCacheData(params.id ? [params.id] : undefined);
+export const loader = async ({ params }: { params: { "*"?: string } }) => {
+  const segments = params["*"]?.split("/").filter(Boolean) ?? [];
+  const data = await getCacheData(segments);
 
   if (!data) return new Response("", { status: 404 });
 
@@ -87,6 +88,17 @@ export const GET = async (
 ```
 
 Use `getCacheData` as the single entry point for the [widget](https://www.npmjs.com/package/@nimpl/cache-widget).
+
+## Examples
+
+- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)**
+  - Minimal Next.js example demonstrating redis cache handler and widget setup
+
+- **[React Router Example](https://router-bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/react-router-bsky)
+  - Demonstrates cache widget integration with React Router 7 and redis cache handler
+
+- **[Next.js Example](https://bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/nextjs-bsky)
+  - Shows cache widget usage in a Next.js cacheComponents application and redis cache handler
 
 ## License
 
