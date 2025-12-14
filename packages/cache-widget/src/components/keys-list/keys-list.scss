@@ -34,3 +34,32 @@
     flex: 1;
     overflow-y: auto;
 }
+
+.__ncw_keys-list-categories {
+    display: flex;
+    flex-direction: row;
+}
+
+.__ncw_keys-list-category {
+    flex: 1;
+    text-align: center;
+    background: none;
+    border: none;
+    padding: 8px 12px;
+    cursor: pointer;
+    font-size: 14px;
+    border: 1px solid #e5e7eb;
+    border-bottom: 2px solid #b6b6b6;
+
+    &:hover {
+        border-bottom: 2px solid #212121;
+    }
+}
+
+.__ncw_keys-list-category-selected {
+    border-bottom: 2px solid #665dec;
+
+    &:hover {
+        border-bottom: 2px solid #4940c4;
+    }
+}
