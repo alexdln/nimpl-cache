@@ -1,18 +1,19 @@
-import { type Durations, type Logger, type Entry, type LogData, type Options } from "./types";
+import { type Durations, type Logger, type Entry, type LogData, type Options, type CacheEntry } from "./types";
 import { logger as defaultLogger } from "./lib/logger";
 import { RedisLayer } from "./layers/redis-layer";
 import { LruLayer } from "./layers/lru-layer";
 import { PendingsLayer } from "./layers/pendings-layer";
 import { CacheError } from "./lib/error";
+import { calculateStreamSize } from "./lib/stream";
 
 export class CacheHandler {
     ephemeralLayer: LruLayer;
 
     persistentLayer: RedisLayer;
 
-    private pendingGetsLayer = new PendingsLayer<Entry | undefined | null>();
+    private pendingGetsLayer = new PendingsLayer<CacheEntry | undefined | null>();
 
-    private pendingSetsLayer = new PendingsLayer<Entry | undefined | null>();
+    private pendingSetsLayer = new PendingsLayer<CacheEntry | undefined | null>();
 
     private logger: Logger;
 
@@ -34,24 +35,24 @@ export class CacheHandler {
         this.logger({ type, status, source, key, message });
     }
 
-    async get(key: string) {
+    async getEntry(key: string): Promise<CacheEntry | undefined | null> {
         const pendingSet = await this.pendingSetsLayer.get(key);
         if (pendingSet === null) return undefined;
         if (pendingSet) {
             this.logOperation("GET", "REVALIDATED", "NEW", key);
-            const [cacheStream, responseStream] = pendingSet.value.tee();
-            pendingSet.value = cacheStream;
-            return { ...pendingSet, value: responseStream };
+            const [cacheStream, responseStream] = pendingSet.entry.value.tee();
+            pendingSet.entry.value = cacheStream;
+            return { entry: { ...pendingSet.entry, value: responseStream }, size: pendingSet.size, status: "valid" };
         }
 
-        const ephemeralCache = await this.ephemeralLayer.get(key);
+        const ephemeralCache = await this.ephemeralLayer.getEntry(key);
         if (ephemeralCache) {
             if (ephemeralCache.status === "revalidate") {
                 this.logOperation("GET", "REVALIDATING", "MEMORY", key);
                 return undefined;
             }
             this.logOperation("GET", "HIT", "MEMORY", key);
-            return ephemeralCache.entry;
+            return ephemeralCache;
         }
 
         const pendingGet = await this.pendingGetsLayer.get(key);
@@ -61,15 +62,15 @@ export class CacheHandler {
         }
         if (pendingGet) {
             this.logOperation("GET", "HIT", "REDIS", key);
-            const [cacheStream, responseStream] = pendingGet.value.tee();
-            pendingGet.value = cacheStream;
-            return { ...pendingGet, value: responseStream };
+            const [cacheStream, responseStream] = pendingGet.entry.value.tee();
+            pendingGet.entry.value = cacheStream;
+            return { entry: { ...pendingGet.entry, value: responseStream }, size: pendingGet.size, status: "valid" };
         }
 
         const resolvePending = this.pendingGetsLayer.set(key);
 
         try {
-            const persistentCache = await this.persistentLayer.get(key);
+            const persistentCache = await this.persistentLayer.getEntry(key);
 
             if (persistentCache === null) {
                 await this.persistentLayer.delete(key);
@@ -87,7 +88,7 @@ export class CacheHandler {
                 return undefined;
             }
 
-            const { entry, status } = persistentCache;
+            const { entry, size, status } = persistentCache;
             const [cacheStream, responseStream] = entry.value.tee();
             entry.value = cacheStream;
 
@@ -99,15 +100,20 @@ export class CacheHandler {
                 resolvePending(undefined);
                 return undefined;
             }
-            resolvePending(responseEntry);
+            resolvePending({ entry: responseEntry, size, status: "valid" });
             this.logOperation("GET", "HIT", "REDIS", key);
-            return responseEntry;
+            return { entry: responseEntry, size, status: "valid" };
         } catch (error) {
             this.logOperation("GET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
             resolvePending(null);
 
             if (error instanceof CacheError) throw error;
         }
+    }
+
+    async get(key: string): Promise<Entry | undefined | null> {
+        const cacheEntry = await this.getEntry(key);
+        return cacheEntry ? cacheEntry.entry : undefined;
     }
 
     async set(key: string, pendingEntry: Promise<Entry>) {
@@ -123,7 +129,10 @@ export class CacheHandler {
         try {
             await this.persistentLayer.set(key, { ...entry, value: cacheStreamPersistent });
 
-            resolvePending(entry);
+            const [responseStreamSize, responseStreamMain] = responseStream.tee();
+            entry.value = responseStreamMain;
+            const size = await calculateStreamSize(responseStreamSize);
+            resolvePending({ entry, size, status: "valid" });
             this.logOperation("SET", "REVALIDATED", "NEW", key);
         } catch (error) {
             resolvePending(undefined);
@@ -173,11 +182,11 @@ export class CacheHandler {
         return ephemeralReady && persistentReady;
     }
 
-    async keys(): Promise<{ ephemeralKeys: string[]; persistentKeys: string[] }> {
+    async keys(): Promise<string[]> {
         const [ephemeralKeys, persistentKeys] = await Promise.all([
             this.ephemeralLayer.keys(),
             this.persistentLayer.keys(),
         ]);
-        return { ephemeralKeys, persistentKeys };
+        return Array.from(new Set([...ephemeralKeys, ...persistentKeys]));
     }
 }

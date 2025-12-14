@@ -11,7 +11,7 @@ import {
 } from "../types";
 import { PREFIX_META } from "../lib/constants";
 import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
-import { bufferToStream } from "../lib/stream";
+import { bufferToStream, streamToBuffer } from "../lib/stream";
 import { PendingsLayer } from "./pendings-layer";
 import { CacheConnectionError, CacheError } from "../lib/error";
 
@@ -147,7 +147,7 @@ export class RedisLayer {
         return isConnected;
     }
 
-    async get(key: string): Promise<CacheEntry | undefined | null> {
+    async getEntry(key: string): Promise<CacheEntry | undefined | null> {
         const connected = await this.connect();
         if (!connected) return undefined;
 
@@ -192,6 +192,11 @@ export class RedisLayer {
         return cacheEntry;
     }
 
+    async get(key: string): Promise<Entry | undefined | null> {
+        const cacheEntry = await this.getEntry(key);
+        return cacheEntry && cacheEntry.status === "valid" ? cacheEntry.entry : undefined;
+    }
+
     async set(key: string, pendingEntry: Promise<Entry> | Entry) {
         const connected = await this.connect();
         if (!connected) return;
@@ -199,13 +204,8 @@ export class RedisLayer {
         const entry = await pendingEntry;
         const { cacheKey, metaKey } = getCacheKeys(key, this.keyPrefix);
         const pipeline = this.redisClient.pipeline();
-        const chunks: Uint8Array[] = [];
 
-        for await (const chunk of entry.value) {
-            chunks.push(chunk);
-        }
-
-        pipeline.set(cacheKey, Buffer.concat(chunks), "EX", entry.expire);
+        pipeline.set(cacheKey, await streamToBuffer(entry.value), "EX", entry.expire);
         pipeline.set(
             metaKey,
             JSON.stringify({

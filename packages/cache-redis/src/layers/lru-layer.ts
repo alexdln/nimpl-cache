@@ -3,6 +3,7 @@ import { LRUCache } from "lru-cache";
 import { type Options, type Logger, type Durations, type Entry, type CacheEntry } from "../types";
 import { DEFAULT_LRU_MAX_SIZE, DEFAULT_LRU_TTL } from "../lib/constants";
 import { getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
+import { calculateStreamSize } from "../lib/stream";
 
 export class LruLayer {
     private lruClient: LRUCache<string, CacheEntry, unknown>;
@@ -12,18 +13,22 @@ export class LruLayer {
     private lruTtl: number | "auto";
 
     constructor(options: Options["lruOptions"], logger: Logger) {
-        const { ttl, ...lruOptions } = options || {};
-        this.lruTtl = (ttl ?? (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) ?? DEFAULT_LRU_TTL) || 0;
+        const { ttl, maxSize, ...lruOptions } = options || {};
+        const lruTtl = ttl ?? (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) ?? DEFAULT_LRU_TTL;
+        if (typeof lruTtl === "number") {
+            this.lruTtl = lruTtl;
+        } else {
+            this.lruTtl = "auto";
+        }
+
         this.logger = logger;
 
         this.lruClient = new LRUCache<string, CacheEntry, unknown>({
             maxSize:
-                options?.maxSize ||
-                (process.env.LRU_MAX_SIZE && parseInt(process.env.LRU_MAX_SIZE)) ||
-                DEFAULT_LRU_MAX_SIZE,
+                maxSize || (process.env.LRU_MAX_SIZE && parseInt(process.env.LRU_MAX_SIZE)) || DEFAULT_LRU_MAX_SIZE,
             sizeCalculation: (entry) => entry.size,
             ttlAutopurge: true,
-            ...(lruOptions || {}),
+            ...lruOptions,
         });
     }
 
@@ -31,8 +36,9 @@ export class LruLayer {
         return this.lruTtl === "auto" ? expire * 1000 : this.lruTtl * 1000;
     }
 
-    async get(key: string): Promise<CacheEntry | undefined | null> {
+    async getEntry(key: string): Promise<CacheEntry | undefined | null> {
         const memoryEntry = this.lruClient.get(key);
+
         if (!memoryEntry) return undefined;
 
         const { entry, size } = memoryEntry;
@@ -52,14 +58,16 @@ export class LruLayer {
         };
     }
 
+    async get(key: string): Promise<Entry | undefined | null> {
+        const cacheEntry = await this.getEntry(key);
+        return cacheEntry && cacheEntry.status === "valid" ? cacheEntry.entry : undefined;
+    }
+
     async set(key: string, pendingEntry: Promise<Entry> | Entry) {
         const entry = await pendingEntry;
         const [cacheStream, responseStream] = entry.value.tee();
         entry.value = responseStream;
-        let size = 0;
-        for await (const chunk of cacheStream) {
-            size += Buffer.byteLength(chunk);
-        }
+        const size = await calculateStreamSize(cacheStream);
         this.lruClient.set(
             key,
             { entry, size: size || 1, status: "valid" },
@@ -87,10 +95,6 @@ export class LruLayer {
     }
 
     async keys(): Promise<string[]> {
-        const keys: string[] = [];
-        this.lruClient.forEach((_, key) => {
-            keys.push(key);
-        });
-        return keys;
+        return Array.from(this.lruClient.keys());
     }
 }
