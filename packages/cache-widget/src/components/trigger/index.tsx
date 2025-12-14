@@ -1,15 +1,17 @@
-import React from "react";
+"use client";
+
+import React, { use } from "react";
+
+import { SetWidgetOpenContext } from "../../store/contexts";
 
 import "./trigger.scss";
 
-interface TriggerProps {
-    onClick: () => void;
-}
+export const Trigger: React.FC = () => {
+    const setWidgetOpen = use(SetWidgetOpenContext);
 
-export const Trigger: React.FC<TriggerProps> = ({ onClick }) => {
     return (
         <div className="__ncw_trigger">
-            <button className="__ncw_trigger-action" onClick={onClick}>
+            <button className="__ncw_trigger-action" onClick={() => setWidgetOpen(true)}>
                 View Cache
             </button>
         </div>

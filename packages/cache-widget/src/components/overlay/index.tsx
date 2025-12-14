@@ -1,18 +1,23 @@
-import React from "react";
+"use client";
+
+import React, { use } from "react";
+
+import { SetWidgetOpenContext, WidgetOpenContext } from "../../store/contexts";
 
 import "./overlay.scss";
 
 interface OverlayProps {
-    onClick: () => void;
-    visible: boolean;
     transparent?: boolean;
 }
 
-export const Overlay: React.FC<OverlayProps> = ({ onClick, visible, transparent = false }) => {
+export const Overlay: React.FC<OverlayProps> = ({ transparent = false }) => {
+    const isOpen = use(WidgetOpenContext);
+    const setWidgetOpen = use(SetWidgetOpenContext);
+
     return (
         <div
-            className={`__ncw_overlay ${visible ? "__ncw_overlay_visible" : ""} ${transparent ? "__ncw_overlay_transparent" : ""}`}
-            onClick={onClick}
+            className={`__ncw_overlay ${isOpen ? "__ncw_overlay_visible" : ""} ${transparent ? "__ncw_overlay_transparent" : ""}`}
+            onClick={() => setWidgetOpen(false)}
         />
     );
 };

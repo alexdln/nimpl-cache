@@ -1,35 +1,24 @@
-import React, { useEffect } from "react";
+"use client";
 
-import { type CacheKeyInfo } from "../../lib/types";
+import React, { use } from "react";
+
 import { formatBytes, formatTimestamp, formatDuration, formatDifference } from "../../lib/utils";
+import { CacheKeyContext, FetchDetailsContext, SetCacheKeyContext } from "../../store/contexts";
 import { Value } from "../value";
-import { ErrorMessage } from "../error";
 import { Loading } from "../loading";
-import { useFetch } from "../../lib/use-fetch";
+import { ErrorMessage } from "../error";
 
 import "./details.scss";
 
-interface DetailsProps {
-    selectedKey: string | null;
-    setSelectedKey: (key: string | null) => void;
-    apiUrl: string;
-}
-
-export const Details: React.FC<DetailsProps> = ({ selectedKey, setSelectedKey, apiUrl }) => {
-    const { data, loading, error, fetch, reset } = useFetch<CacheKeyInfo>();
-
-    useEffect(() => {
-        if (selectedKey) {
-            fetch(apiUrl.endsWith("/") ? `${apiUrl}${selectedKey}` : `${apiUrl}/${selectedKey}`);
-        } else {
-            reset();
-        }
-    }, [selectedKey, fetch, apiUrl]);
+export const Details: React.FC = () => {
+    const { data, loading, error } = use(FetchDetailsContext);
+    const setCacheKey = use(SetCacheKeyContext);
+    const cacheKey = use(CacheKeyContext);
 
     return (
-        <div className={`__ncw_details ${selectedKey ? "__ncw_details-selected" : ""}`}>
+        <div className={`__ncw_details ${cacheKey ? "__ncw_details-selected" : ""}`}>
             <div className="__ncw_details-header">
-                <button className="__ncw_details-title-button" onClick={() => setSelectedKey(null)}>
+                <button className="__ncw_details-title-button" onClick={() => setCacheKey(null)}>
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                         <path
                             d="M15 18L9 12L15 6"
@@ -45,10 +34,10 @@ export const Details: React.FC<DetailsProps> = ({ selectedKey, setSelectedKey, a
             <div className="__ncw_details-content">
                 <table className="__ncw_details-table">
                     <tbody>
-                        {selectedKey && (
+                        {cacheKey && (
                             <tr className="__ncw_details-row">
                                 <th>Key</th>
-                                <td>{selectedKey}</td>
+                                <td>{cacheKey}</td>
                             </tr>
                         )}
                         {data?.metadata && (
