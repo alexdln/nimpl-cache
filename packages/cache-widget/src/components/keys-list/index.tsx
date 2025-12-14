@@ -1,52 +1,52 @@
-import React from "react";
+"use client";
 
-import { type KeysData } from "../../lib/types";
+import React, { use } from "react";
+
 import { KeyItem } from "../key-item";
+import {
+    CacheKeyContext,
+    CategoryContext,
+    FetchKeysContext,
+    SetCacheKeyContext,
+    SetCategoryContext,
+} from "../../store/contexts";
+import { Loading } from "../loading";
+import { ErrorMessage } from "../error";
 
 import "./keys-list.scss";
 
-interface KeysListProps {
-    keys: KeysData | undefined | null;
-    selectedKey: string | null;
-    selectedCategory: "main" | "persistent" | "ephemeral";
-    onChangeKey: (key: string) => void;
-    onChangeCategory: (category: "main" | "persistent" | "ephemeral") => void;
-}
+export const KeysList: React.FC = () => {
+    const { data: keys, loading, error } = use(FetchKeysContext);
+    const setCategory = use(SetCategoryContext);
+    const category = use(CategoryContext);
+    const setCacheKey = use(SetCacheKeyContext);
+    const cacheKey = use(CacheKeyContext);
 
-export const KeysList: React.FC<KeysListProps> = ({
-    keys,
-    selectedKey,
-    selectedCategory,
-    onChangeKey,
-    onChangeCategory,
-}) => {
     return (
         <div className="__ncw_keys-list">
             <h3 className="__ncw_keys-list-title">Cache Keys ({keys?.length ?? 0})</h3>
             <div className="__ncw_keys-list-items">
                 <div className="__ncw_keys-list-categories">
-                    {["main", "persistent", "ephemeral"].map((category) => (
+                    {["main", "persistent", "ephemeral"].map((categoryItem) => (
                         <button
-                            key={category}
-                            className={`__ncw_keys-list-category ${selectedCategory === category ? "__ncw_keys-list-category-selected" : ""}`}
-                            onClick={() => onChangeCategory(category as "main" | "persistent" | "ephemeral")}
+                            key={categoryItem}
+                            className={`__ncw_keys-list-category ${category === categoryItem ? "__ncw_keys-list-category-selected" : ""}`}
+                            onClick={() => setCategory(categoryItem as "main" | "persistent" | "ephemeral")}
                         >
-                            {category}
+                            {categoryItem}
                         </button>
                     ))}
                 </div>
-                {!keys || keys.length === 0 ? (
-                    <span className="__ncw_keys-list-empty">{keys === undefined ? "Loading..." : "Nothing found"}</span>
-                ) : (
-                    keys.map((key) => (
-                        <KeyItem
-                            key={key}
-                            cacheKey={key}
-                            isSelected={selectedKey === key}
-                            onClick={() => onChangeKey(key)}
-                        />
-                    ))
+                {loading && <Loading />}
+                {error && <ErrorMessage message={error} />}
+                {(keys === null || (keys && keys.length === 0)) && (
+                    <div className="__ncw_keys-list-empty">
+                        <p>Nothing found</p>
+                    </div>
                 )}
+                {keys?.map((key) => (
+                    <KeyItem key={key} cacheKey={key} isSelected={cacheKey === key} onClick={() => setCacheKey(key)} />
+                ))}
             </div>
         </div>
     );
