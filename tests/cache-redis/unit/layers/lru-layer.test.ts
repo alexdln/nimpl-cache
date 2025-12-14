@@ -44,7 +44,7 @@ describe("LruLayer", () => {
 
             await layer.set("expired-key", entry);
 
-            const result = await layer.get("expired-key");
+            const result = await layer.getEntry("expired-key");
             expect(result).toBeNull();
         });
 
@@ -61,7 +61,7 @@ describe("LruLayer", () => {
             };
 
             await layer.set("valid-key", entry);
-            const result = await layer.get("valid-key");
+            const result = await layer.getEntry("valid-key");
 
             expect(result).toBeDefined();
             expect(result?.entry.tags).toEqual(["tag1"]);
@@ -84,8 +84,8 @@ describe("LruLayer", () => {
             await layer.set("test-key", entry);
             const result = await layer.get("test-key");
 
-            expect(result?.entry.value).not.toBe(originalStream);
-            expect(result?.entry.value).toBeInstanceOf(ReadableStream);
+            expect(result?.value).not.toBe(originalStream);
+            expect(result?.value).toBeInstanceOf(ReadableStream);
         });
 
         it("should return revalidate status when entry needs revalidation", async () => {
@@ -100,7 +100,7 @@ describe("LruLayer", () => {
             };
 
             await layer.set("revalidate-key", entry);
-            const result = await layer.get("revalidate-key");
+            const result = await layer.getEntry("revalidate-key");
 
             expect(result?.status).toBe("revalidate");
         });
@@ -122,7 +122,7 @@ describe("LruLayer", () => {
             const result = await layer.get("test-key");
 
             expect(result).toBeDefined();
-            expect(result?.entry.tags).toEqual(["tag1"]);
+            expect(result?.tags).toEqual(["tag1"]);
         });
 
         it("should respect custom TTL when provided and expired", async () => {
@@ -217,9 +217,9 @@ describe("LruLayer", () => {
             await layer.updateTags(["tag1"], { expire: 20 });
 
             const result = await layer.get("test-key");
-            expect(result?.entry.tags).toEqual(["tag1", "tag2"]);
-            expect(result?.entry.stale).toBe(0);
-            expect(result?.entry.revalidate).toBe(20);
+            expect(result?.tags).toEqual(["tag1", "tag2"]);
+            expect(result?.stale).toBe(0);
+            expect(result?.revalidate).toBe(20);
         });
 
         it("should not update metadata for non-matching tags", async () => {
@@ -237,8 +237,8 @@ describe("LruLayer", () => {
             const originalTimestamp = entry.timestamp;
             await layer.updateTags(["tag2"], { expire: 20 });
             const result = await layer.get("test-key");
-            expect(result?.entry.timestamp).toBe(originalTimestamp);
-            expect(result?.entry.stale).toBe(100);
+            expect(result?.timestamp).toBe(originalTimestamp);
+            expect(result?.stale).toBe(100);
         });
     });
 });
