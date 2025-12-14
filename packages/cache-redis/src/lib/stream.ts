@@ -22,3 +22,13 @@ export const bufferToStream = (buffer: Buffer): ReadableStream => {
         },
     });
 };
+
+export const calculateStreamSize = async (
+    stream: ReadableStream<Uint8Array> | WebReadableStream<Uint8Array>,
+): Promise<number> => {
+    let size = 0;
+    for await (const chunk of stream) {
+        size += chunk.byteLength;
+    }
+    return size;
+};

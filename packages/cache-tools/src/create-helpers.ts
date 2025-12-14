@@ -1,13 +1,32 @@
 import { type CacheHandler, type KeysData } from "./lib/types";
 import { streamToRaw } from "./lib/stream";
 
-export const getKeys = async (cacheHandler: CacheHandler): Promise<KeysData> => {
-    return cacheHandler.persistentLayer.keys();
+export const getKeys = async (
+    cacheHandler: CacheHandler,
+    type: "main" | "persistent" | "ephemeral" = "main",
+): Promise<KeysData> => {
+    const layers = {
+        main: cacheHandler,
+        persistent: cacheHandler.persistentLayer,
+        ephemeral: cacheHandler.ephemeralLayer,
+    };
+    const handler = layers[type];
+    return handler.keys();
 };
 
-export const getKeyDetails = async (cacheHandler: CacheHandler, key: string) => {
+export const getKeyDetails = async (
+    cacheHandler: CacheHandler,
+    type: "main" | "persistent" | "ephemeral",
+    key: string,
+) => {
+    const layers = {
+        main: cacheHandler,
+        persistent: cacheHandler.persistentLayer,
+        ephemeral: cacheHandler.ephemeralLayer,
+    };
+    const handler = layers[type];
     try {
-        const cacheEntry = await cacheHandler.persistentLayer.get(key);
+        const cacheEntry = await handler.getEntry(key);
 
         if (!cacheEntry) {
             return {
@@ -50,21 +69,25 @@ export const getKeyDetails = async (cacheHandler: CacheHandler, key: string) => 
 };
 
 export const getCacheData = (cacheHandler: CacheHandler, segments?: string[]) => {
-    if (segments && segments.length > 1) {
+    if (!segments?.length || segments.length > 2) {
         return null;
     }
-
-    if (!segments?.length) {
-        return getKeys(cacheHandler);
+    const type = segments[0] as "main" | "persistent" | "ephemeral";
+    if (!["main", "persistent", "ephemeral"].includes(type)) {
+        return null;
+    }
+    if (segments.length === 1) {
+        return getKeys(cacheHandler, type);
     }
 
-    return getKeyDetails(cacheHandler, segments[0]);
+    return getKeyDetails(cacheHandler, type, segments[1]);
 };
 
 export const createHelpers = (cacheHandler: CacheHandler) => {
     return {
-        getKeys: () => getKeys(cacheHandler),
-        getKeyDetails: (key: string) => getKeyDetails(cacheHandler, key),
+        getKeys: (type: "main" | "persistent" | "ephemeral") => getKeys(cacheHandler, type),
+        getKeyDetails: (type: "main" | "persistent" | "ephemeral", key: string) =>
+            getKeyDetails(cacheHandler, type, key),
         getCacheData: (segments?: string[]) => getCacheData(cacheHandler, segments),
     };
 };

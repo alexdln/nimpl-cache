@@ -16,7 +16,7 @@ To connect the widget, you need to add the component and styles to a convenient 
 
 You also need to configure API routes for the widget. `/api/cache-widget` for getting the list of keys and `/api/cache-widget/[slug]` for getting data for a specific key. For this purpose, you can use the [@nimpl/cache-tools](https://www.npmjs.com/package/@nimpl/cache-tools) utility.
 
-`cache-widget` and `cache-tools` can work with any `cache-handler`, but for them to work, the `cache-handler` must have an additional `keys()` method beyond the standard for getting the list of keys. Solutions from `@nimpl/cache` are compatible out of the box.
+`cache-widget` and `cache-tools` can work with any `cache-handler`, but for them to work, the `cache-handler` must have an additional `keys()` and `getEntry()` methods beyond the standard for getting cache data. Solutions from `@nimpl/cache` are compatible out of the box.
 
 ### Initialize a cache handler
 
@@ -40,10 +40,11 @@ React Router loader:
 
 ```ts
 // app/api/cache-widget/route.ts
-import { getCacheData } from "@/cache-handler";
+import { getCacheData } from "../../../../cache-handler";
 
-export const loader = async ({ params }: { params: { id?: string } }) => {
-  const data = await getCacheData(params.id ? [params.id] : undefined);
+export const loader = async ({ params }: { params: { "*"?: string } }) => {
+  const segments = params["*"]?.split("/").filter(Boolean) ?? [];
+  const data = await getCacheData(segments);
 
   if (!data) return new Response("", { status: 404 });
 
@@ -103,6 +104,17 @@ You can customize the API endpoint URL (default - `/api/cache-widget`):
 ```tsx
 <CacheWidget apiUrl="/api/custom-cache-endpoint" />
 ```
+
+## Examples
+
+- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)**
+  - Minimal Next.js example demonstrating redis cache handler and widget setup
+
+- **[React Router Example](https://router-bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/react-router-bsky)
+  - Demonstrates cache widget integration with React Router 7 and redis cache handler
+
+- **[Next.js Example](https://bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/nextjs-bsky)
+  - Shows cache widget usage in a Next.js cacheComponents application and redis cache handler
 
 ## License
 

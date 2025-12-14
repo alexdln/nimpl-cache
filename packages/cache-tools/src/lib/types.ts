@@ -10,20 +10,29 @@ export type Metadata = {
 
 export type KeysData = string[];
 
-type CacheEntry = {
+type Entry = {
     value: ReadableStream | WebReadableStream;
 } & Metadata;
 
+type CacheEntry = {
+    entry: Entry;
+    size: number;
+    status: string;
+};
+
 export type CacheHandler = {
-    get: (key: string) => Promise<CacheEntry | undefined | null>;
-    set: (key: string, value: Promise<CacheEntry>) => Promise<void>;
+    getEntry: (key: string) => Promise<CacheEntry | undefined | null>;
+    get: (key: string) => Promise<Entry | undefined | null>;
+    set: (key: string, value: Promise<Entry>) => Promise<void>;
     keys: () => Promise<KeysData>;
     ephemeralLayer: {
-        get: (key: string) => Promise<{ entry: CacheEntry; size: number; status: string } | null | undefined>;
+        getEntry: (key: string) => Promise<CacheEntry | undefined | null>;
+        get: (key: string) => Promise<Entry | undefined | null>;
         keys: () => Promise<KeysData>;
     };
     persistentLayer: {
-        get: (key: string) => Promise<{ entry: CacheEntry; size: number; status: string } | null | undefined>;
+        getEntry: (key: string) => Promise<CacheEntry | undefined | null>;
+        get: (key: string) => Promise<Entry | undefined | null>;
         keys: () => Promise<KeysData>;
     };
 };

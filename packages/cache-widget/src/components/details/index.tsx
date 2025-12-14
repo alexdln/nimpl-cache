@@ -16,15 +16,15 @@ interface DetailsProps {
 }
 
 export const Details: React.FC<DetailsProps> = ({ selectedKey, setSelectedKey, apiUrl }) => {
-    const { data, loading, error, fetch, reset } = useFetch<CacheKeyInfo>(`${apiUrl}/${selectedKey}`);
+    const { data, loading, error, fetch, reset } = useFetch<CacheKeyInfo>();
 
     useEffect(() => {
         if (selectedKey) {
-            fetch();
+            fetch(apiUrl.endsWith("/") ? `${apiUrl}${selectedKey}` : `${apiUrl}/${selectedKey}`);
         } else {
             reset();
         }
-    }, [selectedKey, fetch]);
+    }, [selectedKey, fetch, apiUrl]);
 
     return (
         <div className={`__ncw_details ${selectedKey ? "__ncw_details-selected" : ""}`}>
@@ -105,6 +105,11 @@ export const Details: React.FC<DetailsProps> = ({ selectedKey, setSelectedKey, a
 
                 {loading && <Loading />}
                 {error && <ErrorMessage message={error} />}
+                {(data === null || (data && !data.metadata)) && (
+                    <div className="__ncw_details-message">
+                        <p>The key has been deleted or is out of date</p>
+                    </div>
+                )}
 
                 {data?.value && <Value value={data.value} />}
             </div>

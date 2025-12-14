@@ -92,7 +92,7 @@ describe("RedisLayer", () => {
 
             mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(expiredMeta)).mockResolvedValueOnce(null);
 
-            const result = await layer.get("test-key");
+            const result = await layer.getEntry("test-key");
             expect(result).toBeNull();
         });
 
@@ -129,7 +129,7 @@ describe("RedisLayer", () => {
             mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(meta));
             mockRedisClient.getBuffer.mockResolvedValueOnce(buffer);
 
-            const result = await layer.get("test-key");
+            const result = await layer.getEntry("test-key");
 
             expect(result).toBeDefined();
             expect(result?.entry.tags).toEqual(["tag1"]);
@@ -153,7 +153,7 @@ describe("RedisLayer", () => {
             mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(meta));
             mockRedisClient.getBuffer.mockResolvedValueOnce(buffer);
 
-            const result = await layer.get("test-key");
+            const result = await layer.getEntry("test-key");
             expect(result?.status).toBe("revalidate");
         });
     });
