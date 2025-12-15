@@ -1,6 +1,4 @@
-import { RedisOptions } from "ioredis";
-import { LRUCache } from "lru-cache";
-import { ReadableStream as WebReadableStream } from "node:stream/web";
+import { type ReadableStream as WebReadableStream } from "node:stream/web";
 
 export type Durations = {
     expire: number;
@@ -47,12 +45,23 @@ export type LogData = {
 
 export type Logger = (logData: LogData) => void;
 
-export type RedisConnectionStrategy = "ignore" | "wait-ignore" | "wait-throw" | "wait-exit";
-
-export type Options = {
+export type CacheHandlerOptions = {
+    ephemeralLayer: CacheHandlerLayer;
+    persistentLayer: CacheHandlerLayer;
     logger?: Logger;
-    redisOptions?: RedisOptions & { url?: string; connectionStrategy?: RedisConnectionStrategy };
-    lruOptions?: Omit<LRUCache<string, CacheEntry, unknown> | LRUCache.Options<string, CacheEntry, unknown>, "ttl"> & {
-        ttl?: number | "auto";
-    };
 };
+
+export interface CacheHandlerLayer {
+    getEntry(key: string): Promise<CacheEntry | undefined | null>;
+    get(key: string): Promise<Entry | undefined | null>;
+    set(key: string, pendingEntry: Promise<Entry> | Entry): Promise<void>;
+    delete(key: string): Promise<void>;
+    updateTags(tags: string[], durations?: Durations): Promise<void>;
+    checkIsReady(): Promise<boolean>;
+    keys(): Promise<string[]>;
+}
+
+export interface CacheHandlerRoot extends CacheHandlerLayer {
+    ephemeralLayer: CacheHandlerLayer;
+    persistentLayer: CacheHandlerLayer;
+}

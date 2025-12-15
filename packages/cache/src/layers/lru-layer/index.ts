@@ -1,18 +1,19 @@
 import { LRUCache } from "lru-cache";
 
-import { type Options, type Logger, type Durations, type Entry, type CacheEntry } from "../types";
-import { DEFAULT_LRU_MAX_SIZE, DEFAULT_LRU_TTL } from "../lib/constants";
-import { getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
-import { calculateStreamSize } from "../lib/stream";
+import { type Durations, type Entry, type CacheEntry, type CacheHandlerLayer } from "../../types";
+import { type LruLayerOptions } from "./types";
+import { DEFAULT_LRU_MAX_SIZE, DEFAULT_LRU_TTL } from "../../lib/constants";
+import { getCacheStatus, getUpdatedMetadata } from "../../lib/helpers";
+import { calculateStreamSize } from "../../lib/stream";
 
-export class LruLayer {
+export * from "./types";
+
+export class LruLayer implements CacheHandlerLayer {
     private lruClient: LRUCache<string, CacheEntry, unknown>;
-
-    private logger: Logger;
 
     private lruTtl: number | "auto";
 
-    constructor(options: Options["lruOptions"], logger: Logger) {
+    constructor(options?: LruLayerOptions) {
         const { ttl, maxSize, ...lruOptions } = options || {};
         const lruTtl = ttl ?? (process.env.LRU_TTL && parseInt(process.env.LRU_TTL)) ?? DEFAULT_LRU_TTL;
         if (typeof lruTtl === "number") {
@@ -20,8 +21,6 @@ export class LruLayer {
         } else {
             this.lruTtl = "auto";
         }
-
-        this.logger = logger;
 
         this.lruClient = new LRUCache<string, CacheEntry, unknown>({
             maxSize:

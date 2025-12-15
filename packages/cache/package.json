@@ -1,17 +1,16 @@
 {
-  "name": "@nimpl/cache-redis",
+  "name": "@nimpl/cache",
   "version": "0.0.1",
-  "description": "Redis-based cache handler. Designed for Next.js but can be used to build custom caching solutions for any other stack",
+  "description": "A cache solutions library for creating universal cache-handlers. Designed for Next.js but can be used to build custom caching solutions for any other stack",
   "keywords": [
-    "react",
     "cache",
     "cache-handler",
     "remote cache",
-    "next k8s cache",
-    "redis",
-    "redis cache",
+    "react",
     "next",
-    "nextjs"
+    "nextjs",
+    "react router",
+    "next k8s cache"
   ],
   "main": "dist/cjs/index.js",
   "module": "dist/esm/index.mjs",
@@ -28,6 +27,12 @@
       "import": "./dist/esm/cache-handler.mjs",
       "require": "./dist/cjs/cache-handler.js",
       "default": "./dist/esm/cache-handler.mjs"
+    },
+    "./layers": {
+      "types": "./dist/cjs/layers.d.ts",
+      "import": "./dist/esm/layers.mjs",
+      "require": "./dist/cjs/layers.js",
+      "default": "./dist/esm/layers.mjs"
     }
   },
   "files": [
@@ -47,7 +52,9 @@
     "url": "https://github.com/alexdln/"
   },
   "dependencies": {
-    "@nimpl/cache": "latest"
+    "chalk": "4.1.2",
+    "ioredis": "5.8.2",
+    "lru-cache": "11.2.4"
   },
   "devDependencies": {
     "@rollup/plugin-commonjs": "29.0.0",
