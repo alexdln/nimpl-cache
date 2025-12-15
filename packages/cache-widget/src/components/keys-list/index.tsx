@@ -2,6 +2,7 @@
 
 import React, { use } from "react";
 
+import { type Category } from "../../lib/types";
 import { KeyItem } from "../key-item";
 import {
     CacheKeyContext,
@@ -12,11 +13,12 @@ import {
 } from "../../store/contexts";
 import { Loading } from "../loading";
 import { ErrorMessage } from "../error";
+import { Reload } from "../reload";
 
 import "./keys-list.scss";
 
 export const KeysList: React.FC = () => {
-    const { data: keys, loading, error } = use(FetchKeysContext);
+    const { data: keys, loading, error, reload } = use(FetchKeysContext);
     const setCategory = use(SetCategoryContext);
     const category = use(CategoryContext);
     const setCacheKey = use(SetCacheKeyContext);
@@ -24,14 +26,17 @@ export const KeysList: React.FC = () => {
 
     return (
         <div className="__ncw_keys-list">
-            <h3 className="__ncw_keys-list-title">Cache Keys ({keys?.length ?? 0})</h3>
+            <div className="__ncw_keys-list-header">
+                <h3 className="__ncw_keys-list-title">Cache Keys</h3>
+                <Reload loading={loading} onClick={reload} />
+            </div>
             <div className="__ncw_keys-list-items">
                 <div className="__ncw_keys-list-categories">
                     {["main", "persistent", "ephemeral"].map((categoryItem) => (
                         <button
                             key={categoryItem}
                             className={`__ncw_keys-list-category ${category === categoryItem ? "__ncw_keys-list-category-selected" : ""}`}
-                            onClick={() => setCategory(categoryItem as "main" | "persistent" | "ephemeral")}
+                            onClick={() => setCategory(categoryItem as Category)}
                         >
                             {categoryItem}
                         </button>

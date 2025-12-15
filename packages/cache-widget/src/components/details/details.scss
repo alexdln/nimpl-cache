@@ -20,9 +20,8 @@
 
 .__ncw_details-header {
     display: flex;
-    gap: 8px;
+    gap: 12px;
     align-items: center;
-    justify-content: space-between;
     padding: 16px 20px;
     background: #f9fafb;
     border-bottom: 1px solid #e5e7eb;
@@ -51,7 +50,6 @@
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    flex: 1;
 }
 
 .__ncw_details-content {

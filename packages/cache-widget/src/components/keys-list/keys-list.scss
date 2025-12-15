@@ -16,13 +16,20 @@
     }
 }
 
+.__ncw_keys-list-header {
+    display: flex;
+    flex-direction: row;
+    align-items: center;
+    gap: 12px;
+    padding: 16px 12px;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+}
+
 .__ncw_keys-list-title {
-    padding: 16px 20px;
     margin: 0;
     font-size: 16px;
     font-weight: 600;
-    background: #f9fafb;
-    border-bottom: 1px solid #e5e7eb;
 }
 
 .__ncw_keys-list-empty {
