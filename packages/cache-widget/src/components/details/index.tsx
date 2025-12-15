@@ -7,11 +7,12 @@ import { CacheKeyContext, FetchDetailsContext, SetCacheKeyContext } from "../../
 import { Value } from "../value";
 import { Loading } from "../loading";
 import { ErrorMessage } from "../error";
+import { Reload } from "../reload";
 
 import "./details.scss";
 
 export const Details: React.FC = () => {
-    const { data, loading, error } = use(FetchDetailsContext);
+    const { data, loading, error, reload } = use(FetchDetailsContext);
     const setCacheKey = use(SetCacheKeyContext);
     const cacheKey = use(CacheKeyContext);
 
@@ -30,6 +31,7 @@ export const Details: React.FC = () => {
                     </svg>
                 </button>
                 <h3 className="__ncw_details-title">Key Details</h3>
+                <Reload loading={loading} onClick={reload} disabled={!cacheKey} />
             </div>
             <div className="__ncw_details-content">
                 <table className="__ncw_details-table">

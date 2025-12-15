@@ -1,0 +1,31 @@
+.__ncw_reload {
+    background: none;
+    border: none;
+    padding: 6px;
+    cursor: pointer;
+    min-width: 32px;
+    height: 32px;
+    margin: -6px;
+
+    &:hover {
+        color: #665dec;
+    }
+
+    &:disabled {
+        color: #999;
+        cursor: not-allowed;
+    }
+
+    &_loading svg {
+        animation: __ncw_spin 1s linear infinite;
+    }
+}
+
+@keyframes __ncw_spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}

@@ -1,3 +1,5 @@
+export type Category = "main" | "persistent" | "ephemeral";
+
 export type Metadata = {
     tags: string[];
     timestamp: number;

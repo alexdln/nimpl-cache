@@ -1,7 +1,7 @@
 import { createContext } from "react";
 
+import { type CacheKeyInfo, type KeysData, type Category } from "../lib/types";
 import { useFetch } from "../lib/use-fetch";
-import { CacheKeyInfo, KeysData } from "../lib/types";
 
 export const WidgetOpenContext = createContext<boolean>(false);
 
@@ -11,9 +11,9 @@ export const CacheKeyContext = createContext<string | null>(null);
 
 export const SetCacheKeyContext = createContext<(cacheKey: string | null) => void>(() => {});
 
-export const CategoryContext = createContext<"main" | "persistent" | "ephemeral">("persistent");
+export const CategoryContext = createContext<Category>("persistent");
 
-export const SetCategoryContext = createContext<(category: "main" | "persistent" | "ephemeral") => void>(() => {});
+export const SetCategoryContext = createContext<(category: Category) => void>(() => {});
 
 export const FetchKeysContext = createContext<ReturnType<typeof useFetch<KeysData>>>({
     data: null,

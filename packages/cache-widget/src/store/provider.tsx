@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from "react";
 
-import { type CacheKeyInfo, type KeysData } from "../lib/types";
+import { type Category, type CacheKeyInfo, type KeysData } from "../lib/types";
 import {
     WidgetOpenContext,
     SetWidgetOpenContext,
@@ -20,8 +20,9 @@ interface CacheWidgetProviderProps {
     children: React.ReactNode;
 }
 
-type Category = "main" | "persistent" | "ephemeral";
-
+// This may not seem optimal, but it is the most lightweight and optimized way
+// to manage state,given the latest capabilities of react context to trigger
+// analysis and re-rendering only where this context is used.
 export const CacheWidgetProvider: React.FC<CacheWidgetProviderProps> = ({ apiUrl, children }) => {
     const [isOpen, setIsOpen] = useState(false);
     const [cacheKey, setCacheKey] = useState<string | null>(null);
