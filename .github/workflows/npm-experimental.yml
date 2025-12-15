@@ -30,10 +30,6 @@ jobs:
       - name: Build packages
         run: |
           for package in packages/*/; do
-            if [[ "$package" == *"cache-redis"* ]]; then
-              echo "Skipping package: $package"
-              continue
-            fi
             echo "Building package: $package"
             cd "$package"
             pnpm run build
@@ -58,10 +54,6 @@ jobs:
           npm set //registry.npmjs.org/:_authToken=$NPM_TOKEN
           VERSION=${{ steps.version.outputs.version }}
           for package in packages/*/; do
-            if [[ "$package" == *"cache-redis"* ]]; then
-              echo "Skipping package: $package"
-              continue
-            fi
             echo "Publishing package: $package"
             cd "$package"
             npm version --no-git-tag-version $VERSION
