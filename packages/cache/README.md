@@ -25,14 +25,14 @@ export default new CacheHandler({
 
 `@nimpl/cache` is a cache solutions library that provides the building blocks for creating universal cache-handlers. The library is built from:
 
-- **Main handlers**: Implement caching strategies and orchestrate cache operations
+- **Core handlers**: Implement caching strategies and orchestrate cache operations
 - **Cache layers**: Implement working with specific cache sources (in-memory, Redis, etc.)
 
-## Main handlers
+## Core handlers
 
-### Base Main Handler
+### Base Core Handler
 
-The current main handler (`CacheHandler`) uses a two-layer architecture:
+The current core handler (`CacheHandler`) uses a two-layer architecture:
 
 1. **Ephemeral layer**: For storing data in memory for fastest local access
 2. **Persistent layer**: For permanent storage between re-runs or between different pods
@@ -91,7 +91,7 @@ The `CacheHandler` accepts the following options:
 
 ### Creating a Custom Cache Handler
 
-You can create cache handler instance by combining main handler and layers:
+You can create cache handler instance by combining core handler and layers:
 
 ```ts
 // cache-handlers/default.js
@@ -215,13 +215,13 @@ export async function GET() {
 
 ## Custom Handlers and Layers
 
-You can write your own main handlers and layers and use them in combination with other solutions. The library is designed to be extensible, allowing you to create custom caching strategies or layers that fit your specific needs.
+You can write your own core handlers and layers and use them in combination with other solutions. The library is designed to be extensible, allowing you to create custom caching strategies or layers that fit your specific needs.
 
 Before implementing new layers, please take a look at the current solutions to understand the expected behavior and memoization patterns.
 
-### Implementing Custom Layers or Main Handlers
+### Implementing Custom Layers or Core Handlers
 
-Custom layers must implement the `CacheHandlerLayer` interface. The main handler provides the same methods as layers, which allows you and tools to change solutions quickly and in a more convenient way.
+Custom layers must implement the `CacheHandlerLayer` interface. The core handler provides the same methods as layers, which allows you and tools to change solutions quickly and in a more convenient way.
 
 #### Required Methods
 
@@ -245,9 +245,9 @@ These methods are critically necessary and can be reused from any other implemen
 - `keys()`: Promise<string[]> - Returns all cache keys. Useful for tools and different infrastructures.
 - `delete(key: string)`: Promise<void> - Deletes a cache entry. Useful for tools and manual cache management.
 
-#### Main Handlers
+#### Core Handlers
 
-Main handlers should support the same methods. Their customization capabilities will be improved in the near future.
+Core handlers should support the same methods. Their customization capabilities will be improved in the near future.
 
 ### Tools and Direct Layer Usage
 
