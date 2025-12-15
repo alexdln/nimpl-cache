@@ -1,5 +1,5 @@
-import { type Entry } from "@nimpl/cache-redis/src/types";
-import { LruLayer } from "@nimpl/cache-redis/src/layers/lru-layer";
+import { type Entry } from "@nimpl/cache/src/types";
+import { LruLayer } from "@nimpl/cache/src/layers/lru-layer";
 
 const createMockStream = (value?: string) => {
     return new ReadableStream({
@@ -12,11 +12,9 @@ const createMockStream = (value?: string) => {
 
 describe("LruLayer", () => {
     let layer: LruLayer;
-    const mockLogger = jest.fn();
 
     beforeEach(() => {
-        mockLogger.mockClear();
-        layer = new LruLayer(undefined, mockLogger);
+        layer = new LruLayer();
     });
 
     describe("checkIsReady", () => {
@@ -126,7 +124,7 @@ describe("LruLayer", () => {
         });
 
         it("should respect custom TTL when provided and expired", async () => {
-            const customLayer = new LruLayer({ ttl: 0.2, ttlAutopurge: false }, mockLogger);
+            const customLayer = new LruLayer({ ttl: 0.2, ttlAutopurge: false });
             const now = performance.timeOrigin + performance.now();
             const entry: Entry = {
                 tags: [],
@@ -144,7 +142,7 @@ describe("LruLayer", () => {
         });
 
         it("should respect custom TTL when provided and still valid", async () => {
-            const customLayer = new LruLayer({ ttl: 1, ttlAutopurge: false }, mockLogger);
+            const customLayer = new LruLayer({ ttl: 1, ttlAutopurge: false });
             const now = performance.timeOrigin + performance.now();
             const entry: Entry = {
                 tags: [],
@@ -161,7 +159,7 @@ describe("LruLayer", () => {
         });
 
         it("should use auto TTL when set to 'auto'", async () => {
-            const autoLayer = new LruLayer({ ttl: "auto", ttlAutopurge: true }, mockLogger);
+            const autoLayer = new LruLayer({ ttl: "auto", ttlAutopurge: true });
             const now = performance.timeOrigin + performance.now();
             const entry: Entry = {
                 tags: [],

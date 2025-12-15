@@ -1,4 +1,4 @@
-import { bufferToStream, streamToBuffer } from "@nimpl/cache-redis/src/lib/stream";
+import { bufferToStream, streamToBuffer } from "@nimpl/cache/src/lib/stream";
 
 describe("stream", () => {
     describe("streamToBuffer", () => {

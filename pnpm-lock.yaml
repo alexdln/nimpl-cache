@@ -224,9 +224,9 @@ importers:
 
   tests:
     dependencies:
-      '@nimpl/cache-redis':
+      '@nimpl/cache':
         specifier: workspace:*
-        version: link:../packages/cache-redis
+        version: link:../packages/cache
     devDependencies:
       '@babel/core':
         specifier: 7.28.5

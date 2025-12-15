@@ -1,4 +1,4 @@
-import { PendingsLayer } from "@nimpl/cache-redis/src/layers/pendings-layer";
+import { PendingsLayer } from "@nimpl/cache/src/layers/pendings-layer";
 
 describe("PendingsLayer", () => {
     let layer: PendingsLayer<string>;

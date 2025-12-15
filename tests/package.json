@@ -9,7 +9,7 @@
     "test:coverage": "jest --coverage"
   },
   "dependencies": {
-    "@nimpl/cache-redis": "workspace:*"
+    "@nimpl/cache": "workspace:*"
   },
   "devDependencies": {
     "@babel/core": "7.28.5",

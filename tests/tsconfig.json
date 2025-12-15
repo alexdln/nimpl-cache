@@ -8,8 +8,8 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@nimpl/cache-redis": ["../../../packages/cache-redis/src/index.ts"],
-      "@nimpl/cache-redis/*": ["../../../packages/cache-redis/src/*"]
+      "@nimpl/cache": ["../../../packages/cache/src/index.ts"],
+      "@nimpl/cache/*": ["../../../packages/cache/src/*"]
     }
   },
   "include": ["**/*.ts"],

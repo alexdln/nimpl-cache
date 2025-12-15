@@ -1,6 +1,6 @@
-import { type Metadata } from "@nimpl/cache-redis/src/types";
-import { RedisLayer } from "@nimpl/cache-redis/src/layers/redis-layer";
-import { CacheConnectionError, CacheError } from "@nimpl/cache-redis/src/lib/error";
+import { type Metadata } from "@nimpl/cache/src/types";
+import { RedisLayer } from "@nimpl/cache/src/layers/redis-layer";
+import { CacheConnectionError, CacheError } from "@nimpl/cache/src/lib/error";
 // @ts-expect-error - Mocking ioredis
 import Redis from "ioredis";
 
