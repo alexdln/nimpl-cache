@@ -105,6 +105,15 @@ You can customize the API endpoint URL (default - `/api/cache-widget`):
 <CacheWidget apiUrl="/api/custom-cache-endpoint" />
 ```
 
+## Additional
+
+You can use the widget to view all current cache entries by layer: main, ephemeral, and persistent.
+
+- main is what the user receives when requesting this cache entry.
+- ephemeral and persistent are internal `@nimpl/cache` layers responsible for fast local writes (ephemeral) and stable external writes for persistent storage (persistent).
+
+> **Note**: on serverless platforms in‑memory layers may not work correctly. On such platforms, we recommend tracking only the persistent layer.
+
 ## Examples
 
 - **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)**
