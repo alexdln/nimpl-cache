@@ -4,9 +4,6 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
-overrides:
-  '@nimpl/cache-redis>@nimpl/cache': workspace:*
-
 importers:
 
   .:
@@ -125,8 +122,8 @@ importers:
   packages/cache-redis:
     dependencies:
       '@nimpl/cache':
-        specifier: workspace:*
-        version: link:../cache
+        specifier: latest
+        version: 0.0.0-experimental-e9174c4
     devDependencies:
       '@rollup/plugin-commonjs':
         specifier: 29.0.0
@@ -1215,6 +1212,9 @@ packages:
     engines: {node: '>= 10'}
     cpu: [x64]
     os: [win32]
+
+  '@nimpl/cache@0.0.0-experimental-e9174c4':
+    resolution: {integrity: sha512-AdBHHOWIYQYni/7N3JZ+wpQcmo0XMl/vGMt6UA6+RCJb6eAMr3VBsGEOtDSf4MHUK8kLbNmvyXT8o0ctTZK7uQ==}
 
   '@parcel/watcher-android-arm64@2.5.1':
     resolution: {integrity: sha512-KF8+j9nNbUN8vzOFDpRMsaKBHZ/mcjEjMToVMJOhTozkDonQFFrRcfdLWn6yWKCmJKmdVxSgHiYvTCef4/qcBA==}
@@ -4201,6 +4201,14 @@ snapshots:
 
   '@next/swc-win32-x64-msvc@16.0.10':
     optional: true
+
+  '@nimpl/cache@0.0.0-experimental-e9174c4':
+    dependencies:
+      chalk: 4.1.2
+      ioredis: 5.8.2
+      lru-cache: 11.2.4
+    transitivePeerDependencies:
+      - supports-color
 
   '@parcel/watcher-android-arm64@2.5.1':
     optional: true
