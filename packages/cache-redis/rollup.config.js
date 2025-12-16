@@ -7,7 +7,7 @@ const { nodeResolve } = require("@rollup/plugin-node-resolve");
 const isProduction = process.env.NODE_ENV === "production";
 
 const createConfig = (format, outputDir, tsconfig) => ({
-    input: ["src/index.ts"],
+    input: ["src/index.ts", "src/cache-handler.ts"],
     output: {
         dir: outputDir,
         format,
