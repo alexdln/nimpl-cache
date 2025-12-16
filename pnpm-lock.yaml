@@ -27,11 +27,11 @@ importers:
         specifier: 8.48.1
         version: 8.48.1(eslint@9.39.1(jiti@2.6.1))(typescript@5.9.3)
 
-  examples/redis-cache:
+  examples/base-handler:
     dependencies:
-      '@nimpl/cache-redis':
+      '@nimpl/cache':
         specifier: workspace:*
-        version: link:../../packages/cache-redis
+        version: link:../../packages/cache
       '@nimpl/cache-tools':
         specifier: workspace:*
         version: link:../../packages/cache-tools

@@ -1,5 +1,5 @@
 {
-  "name": "redis-cache-example",
+  "name": "base-handler-example",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -9,7 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
-    "@nimpl/cache-redis": "workspace:*",
+    "@nimpl/cache": "workspace:*",
     "@nimpl/cache-widget": "workspace:*",
     "@nimpl/cache-tools": "workspace:*",
     "next": "16.0.10",

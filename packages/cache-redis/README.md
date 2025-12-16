@@ -6,7 +6,7 @@ Redis-based cache handler with multi-pod support. Designed for Next.js but can b
 
 `@nimpl/cache-redis` is a showcase library that demonstrates how to build a cache handler using `@nimpl/cache`. It implements a two-tier caching strategy: an in-memory LRU cache for fast local access and Redis for shared cache across multiple pods.
 
-> **Note**: This is a showcase library. In most cases, users should build their own cache-handler using `@nimpl/cache` to have full control over configuration and layers.
+> **Note**: This is a showcase library. In most cases, you should build your own cache-handler using `@nimpl/cache` to have full control over configuration and layers.
 >
 > **For detailed information on handlers, layers, custom implementations, and advanced configuration, see the [`@nimpl/cache` README](../cache/README.md).**
 
@@ -136,7 +136,7 @@ See the [`@nimpl/cache` README](../cache/README.md).
 
 ## Examples
 
-- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)** - Minimal Next.js example
+- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/base-handler)** - Minimal Next.js example demonstrating filesystem cache handler and cache widget
 - **[React Router Example](https://router-bsky.contection.dev/)** - [Source code](https://github.com/alexdln/contection/tree/main/examples/react-router-bsky)
 - **[Next.js cacheComponents Example](https://bsky.contection.dev/)** - [Source code](https://github.com/alexdln/contection/tree/main/examples/nextjs-bsky)
 

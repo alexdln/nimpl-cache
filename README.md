@@ -28,11 +28,11 @@ Create your custom cache handler:
 
 ```ts
 // cache-handlers/default.js
-import { CacheHandler, LruLayer, RedisLayer } from "@nimpl/cache";
+import { CacheHandler, LruLayer, FsLayer } from "@nimpl/cache";
 
 export default new CacheHandler({
   ephemeralLayer: new LruLayer(),
-  persistentLayer: new RedisLayer(),
+  persistentLayer: new FsLayer(),
 });
 ```
 
