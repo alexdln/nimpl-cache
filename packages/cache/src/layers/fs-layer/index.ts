@@ -183,22 +183,27 @@ export class FsLayer implements CacheHandlerLayer {
 
         try {
             for await (const dirent of dir) {
-                if (dirent.isFile() && dirent.name.startsWith(metaPrefix)) {
-                    const metaPath = this.getFilePath(dirent.name);
-                    try {
-                        const content = await readFile(metaPath, "utf8");
-                        const metadata: Metadata = JSON.parse(content);
-                        const updated = getUpdatedMetadata(metadata, tags, durations, now);
-                        if (updated !== metadata) {
-                            await writeFile(metaPath, JSON.stringify(updated), "utf8");
-                        }
-                    } catch {
-                        // ignore errors
+                if (!dirent.isFile() || !dirent.name.startsWith(metaPrefix)) continue;
+                const metaPath = this.getFilePath(decodeURIComponent(dirent.name));
+                try {
+                    const content = await readFile(metaPath, "utf8");
+                    const metadata: Metadata = JSON.parse(content);
+                    const updated = getUpdatedMetadata(metadata, tags, durations, now);
+                    if (updated !== metadata) {
+                        await writeFile(metaPath, JSON.stringify(updated), "utf8");
                     }
+                } catch {
+                    this.logger({
+                        type: "UPDATE_TAGS",
+                        status: "ERROR",
+                        source: "FS",
+                        key: decodeURIComponent(dirent.name),
+                        message: "Failed to read metadata from filesystem cache",
+                    });
                 }
             }
-        } finally {
-            await dir.close();
+        } catch {
+            // ignore errors
         }
     }
 
