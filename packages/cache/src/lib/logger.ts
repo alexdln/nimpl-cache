@@ -20,6 +20,7 @@ const STATUS_COLORS = {
 const SOURCE_COLORS = {
     MEMORY: chalk.blue,
     REDIS: chalk.red,
+    FS: chalk.green,
     NEW: chalk.cyan,
     NONE: chalk.gray,
     DEFAULT: chalk.white,
