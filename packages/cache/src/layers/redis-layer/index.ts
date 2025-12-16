@@ -1,21 +1,24 @@
 import Redis from "ioredis";
 
 import {
-    type Options,
     type Logger,
-    type RedisConnectionStrategy,
     type Metadata,
     type Durations,
     type Entry,
     type CacheEntry,
-} from "../types";
-import { PREFIX_META } from "../lib/constants";
-import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "../lib/helpers";
-import { bufferToStream, streamToBuffer } from "../lib/stream";
-import { PendingsLayer } from "./pendings-layer";
-import { CacheConnectionError, CacheError } from "../lib/error";
+    type CacheHandlerLayer,
+} from "../../types";
+import { type RedisLayerOptions, type RedisConnectionStrategy } from "./types";
+import { PREFIX_META } from "../../lib/constants";
+import { logger as defaultLogger } from "../../lib/logger";
+import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "../../lib/helpers";
+import { bufferToStream, streamToBuffer } from "../../lib/stream";
+import { PendingsLayer } from "../pendings-layer";
+import { CacheConnectionError, CacheError } from "../../lib/error";
 
-export class RedisLayer {
+export * from "./types";
+
+export class RedisLayer implements CacheHandlerLayer {
     private redisClient: Redis;
 
     private logger: Logger;
@@ -32,10 +35,11 @@ export class RedisLayer {
 
     private keyPrefix: string = "";
 
-    constructor(redisOptions: Options["redisOptions"], logger: Logger) {
-        const { url, connectionStrategy, keyPrefix, ...restOptions } = redisOptions || {};
+    constructor(options?: RedisLayerOptions, logger?: Logger) {
+        const { url, connectionStrategy, keyPrefix, ...restOptions } = options || {};
+        const isLoggerEnabled = logger || process.env.NEXT_PRIVATE_DEBUG_CACHE || process.env.NIC_LOGGER;
+        this.logger = isLoggerEnabled ? logger || defaultLogger : () => {};
         this.keyPrefix = keyPrefix || "";
-        this.logger = logger;
         if (connectionStrategy) {
             this.connectionStrategy = connectionStrategy;
         } else if (
@@ -54,7 +58,7 @@ export class RedisLayer {
                 }
                 this.connectAttempts += 1;
                 if (this.connectAttempts > 10) {
-                    logger({
+                    this.logger({
                         type: "CONNECTION",
                         status: "ERROR",
                         source: "REDIS",
@@ -69,7 +73,7 @@ export class RedisLayer {
                     return null;
                 }
                 const delay = Math.min(this.connectAttempts * 1000, 5000);
-                logger({
+                this.logger({
                     type: "CONNECTION",
                     status: "RECONNECTING",
                     source: "REDIS",

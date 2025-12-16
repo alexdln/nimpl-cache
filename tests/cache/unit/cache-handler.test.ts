@@ -1,5 +1,7 @@
-import { type Entry, type Logger } from "@nimpl/cache-redis/src/types";
-import { CacheHandler } from "@nimpl/cache-redis/src/cache-handler";
+import { type Entry, type Logger } from "@nimpl/cache/src/types";
+import { CacheHandler } from "@nimpl/cache/src/cache-handler";
+import { LruLayer } from "@nimpl/cache/src/layers/lru-layer";
+import { RedisLayer } from "@nimpl/cache/src/layers/redis-layer";
 import { Readable } from "stream";
 // @ts-expect-error - Mocking ioredis
 import Redis from "ioredis";
@@ -38,18 +40,29 @@ describe("CacheHandler", () => {
         const MockedRedis = Redis as jest.MockedClass<typeof Redis>;
         MockedRedis.mockImplementation(() => mockRedisClient);
         mockLogger = jest.fn();
-        handler = new CacheHandler({ logger: mockLogger });
+        handler = new CacheHandler({
+            ephemeralLayer: new LruLayer(),
+            persistentLayer: new RedisLayer(),
+            logger: mockLogger,
+        });
     });
 
     describe("constructor", () => {
         it("should create handler with default options", async () => {
-            const defaultHandler = new CacheHandler();
+            const defaultHandler = new CacheHandler({
+                ephemeralLayer: new LruLayer(),
+                persistentLayer: new RedisLayer(),
+            });
             expect(await defaultHandler.checkIsReady()).toBeDefined();
         });
 
         it("should create handler with custom logger", async () => {
             const customLogger = jest.fn();
-            const customHandler = new CacheHandler({ logger: customLogger });
+            const customHandler = new CacheHandler({
+                ephemeralLayer: new LruLayer(),
+                persistentLayer: new RedisLayer(),
+                logger: customLogger,
+            });
             expect(await customHandler.checkIsReady()).toBeDefined();
         });
     });
@@ -250,7 +263,11 @@ describe("CacheHandler", () => {
 
     describe("logging", () => {
         it("should log operations when logger is provided", async () => {
-            const loggedHandler = new CacheHandler({ logger: mockLogger });
+            const loggedHandler = new CacheHandler({
+                ephemeralLayer: new LruLayer(),
+                persistentLayer: new RedisLayer(),
+                logger: mockLogger,
+            });
             const now = performance.timeOrigin + performance.now();
             const stream = Readable.toWeb(Readable.from("test"));
             const entry: Entry = {

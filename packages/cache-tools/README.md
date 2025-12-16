@@ -12,16 +12,11 @@ pnpm add @nimpl/cache-tools
 
 ## Usage
 
-### Init a cache handler
+### Init a cache tools
 
 ```ts
-// cache-handler.ts
-import { CacheHandler } from "@nimpl/cache-redis/cache-handler";
-import { createCache, createHelpers } from "@nimpl/cache-tools";
-
-const cacheHandler = new CacheHandler({
-  redisOptions: { connectionStrategy: "wait-ignore" },
-});
+// cache-tools.ts
+import { cacheHandler } from "@/cache-handler";
 
 export const { cache } = createCache(cacheHandler);
 export const { getKeys, getKeyDetails, getCacheData } =
@@ -35,7 +30,7 @@ export const { getKeys, getKeyDetails, getCacheData } =
 ```ts
 // get-cached-feed.ts
 import { fetchBskyFeed, type FEEDS } from "./bsky";
-import { cache } from "@/cache-handler";
+import { cache } from "@/cache-tools";
 
 export const getCachedFeed = async (id: keyof typeof FEEDS) => {
   const getFeed = cache(
@@ -51,11 +46,11 @@ export const getCachedFeed = async (id: keyof typeof FEEDS) => {
 
 Call `getCachedFeed` instead of the raw fetcher to reuse cached payloads across requests.
 
-### Add API route for cache-widget
+### Add API route for your tools
 
 ```ts
 // app/api/cache-widget/route.ts (React Router)
-import { getCacheData } from "@/cache-handler";
+import { getCacheData } from "@/cache-tools";
 
 export const loader = async ({ params }: { params: { "*"?: string } }) => {
   const segments = params["*"]?.split("/").filter(Boolean) ?? [];
@@ -91,14 +86,11 @@ Use `getCacheData` as the single entry point for the [widget](https://www.npmjs.
 
 ## Examples
 
-- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)**
-  - Minimal Next.js example demonstrating redis cache handler and widget setup
+- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)** - Minimal Next.js example demonstrating redis cache handler and widget setup
 
-- **[React Router Example](https://router-bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/react-router-bsky)
-  - Demonstrates cache widget integration with React Router 7 and redis cache handler
+- **[React Router Example](https://router-bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/react-router-bsky) - Demonstrates cache widget integration with React Router 7 and redis cache handler
 
-- **[Next.js Example](https://bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/nextjs-bsky)
-  - Shows cache widget usage in a Next.js cacheComponents application and redis cache handler
+- **[Next.js Example](https://bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/nextjs-bsky) - Shows cache widget usage in a Next.js cacheComponents application and redis cache handler
 
 ## License
 

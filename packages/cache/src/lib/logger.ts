@@ -1,6 +1,6 @@
 import chalk from "chalk";
 
-import { type LogData } from "../types";
+import { type Logger, type LogData } from "../types";
 
 const STATUS_COLORS = {
     HIT: chalk.green,
@@ -28,7 +28,7 @@ const SOURCE_COLORS = {
 const getStatusColor = (status: LogData["status"]) => STATUS_COLORS[status] || STATUS_COLORS.DEFAULT;
 const getSourceColor = (source: LogData["source"]) => SOURCE_COLORS[source] || SOURCE_COLORS.DEFAULT;
 
-export const logger = (logData: LogData) => {
+export const logger: Logger = (logData) => {
     const statusColor = getStatusColor(logData.status);
     const sourceColor = getSourceColor(logData.source);
 

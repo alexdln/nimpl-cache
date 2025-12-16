@@ -1,5 +1,5 @@
-import { type Metadata } from "@nimpl/cache-redis/src/types";
-import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "@nimpl/cache-redis/src/lib/helpers";
+import { type Metadata } from "@nimpl/cache/src/types";
+import { getCacheKeys, getCacheStatus, getUpdatedMetadata } from "@nimpl/cache/src/lib/helpers";
 
 describe("helpers", () => {
     describe("getCacheKeys", () => {

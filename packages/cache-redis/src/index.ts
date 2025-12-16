@@ -1,3 +1,6 @@
-import { CacheHandler } from "./cache-handler";
+import { CacheHandler, LruLayer, RedisLayer } from "@nimpl/cache";
 
-export default new CacheHandler();
+export default new CacheHandler({
+    ephemeralLayer: new LruLayer(),
+    persistentLayer: new RedisLayer(),
+});
