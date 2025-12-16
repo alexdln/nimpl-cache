@@ -273,8 +273,8 @@ In serverless environments, the `CacheHandler` is initialized on each invocation
 
 ## Examples
 
-- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)**
-  - Minimal Next.js example demonstrating redis cache handler and widget setup
+- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/base-handler)**
+  - Minimal Next.js example demonstrating filesystem cache handler, cache widget, and readiness check setup
 
 - **[React Router Example](https://router-bsky.contection.dev/)** - [View source code](https://github.com/alexdln/contection/tree/main/examples/react-router-bsky)
   - Demonstrates cache widget integration with React Router 7 and redis cache handler

@@ -136,7 +136,7 @@ See the [`@nimpl/cache` README](../cache/README.md).
 
 ## Examples
 
-- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/redis-cache)** - Minimal Next.js example
+- **[Base Example](https://github.com/alexdln/nimpl-cache/tree/main/examples/base-handler)** - Minimal Next.js example demonstrating filesystem cache handler and cache widget
 - **[React Router Example](https://router-bsky.contection.dev/)** - [Source code](https://github.com/alexdln/contection/tree/main/examples/react-router-bsky)
 - **[Next.js cacheComponents Example](https://bsky.contection.dev/)** - [Source code](https://github.com/alexdln/contection/tree/main/examples/nextjs-bsky)
 
