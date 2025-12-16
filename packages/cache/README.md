@@ -73,11 +73,23 @@ Options (`RedisLayerOptions`):
   - `"wait-throw"`: The handler will attempt to connect to Redis and throw an error if the connection fails. Next.js will stop working with the handler for the entire process in this case.
   - `"wait-exit"`: The handler will attempt to connect to Redis and exit the process with code 1 if the connection is unsuccessful.
 
-> **Note**: Next.js has internal caching layers. For static segments this means that even with `wait-throw` or `wait-exit` strategies, users may still receive data from Next.js internal layers before process exit. It's recommended to use these modes with readiness checks to properly handle this scenario.
+> **Note**: Next.js has internal caching layers. For static segments this means that even with `wait-throw` or `wait-exit` strategies, you may still receive data from Next.js internal layers before process exit. It's recommended to use these modes with readiness checks to properly handle this scenario.
 
 Cache entries are stored with separate keys for data and metadata for better performance. Metadata includes cache lifetimes and tag list.
 
 All cache entries have auto-delete configuration and are removed automatically when they expire. This optimizes memory usage by ensuring stale data is cleaned up and helps prioritize frequently accessed data.
+
+**Filesystem Client** - Persistent cache using the local filesystem. Stores cache entries as files on disk, making it suitable for single-instance deployments, development environments, or multi-pod deployments with shared mounted directories.
+
+Options (`FsLayerOptions`):
+
+- `baseDir` (string): Base directory for storing cache files. Default: `process.env.NIC_FS_BASE_DIR || ".cache/nimpl-cache"`
+
+The filesystem layer stores cache entries with separate files for data and metadata, similar to the Redis layer. Metadata includes cache lifetimes and tag list. Cache files are stored using URL-encoded keys to ensure filesystem compatibility.
+
+Expired entries are detected and not returned, but files are not automatically deleted from disk. You may need to implement periodic cleanup if disk space is a concern.
+
+> **Note**: In multi-pod deployments without shared volumes, each pod will have its own filesystem cache, which won't be shared between instances.
 
 ## Configuration
 
