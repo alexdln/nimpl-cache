@@ -10,8 +10,7 @@
     "lint": "next lint"
   },
   "dependencies": {
-    "@nimpl/cache-adapter": "latest",
-    "@nimpl/cache-in-memory": "latest",
+    "@nimpl/cache": "workspace:*",
     "next": "16.0.10",
     "react": "19.2.3",
     "react-dom": "19.2.3"
