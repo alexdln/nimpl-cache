@@ -3,7 +3,7 @@
 const { CacheHandler, LruLayer, FetchLayer } = require("@nimpl/cache");
 
 global.cacheHandler ||= new CacheHandler({
-    ephemeralLayer: new LruLayer(),
+    ephemeralLayer: new LruLayer({ ttl: 10 }),
     persistentLayer: new FetchLayer(),
 });
 
