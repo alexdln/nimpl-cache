@@ -1,11 +1,12 @@
-import { createServer as createHttpServer, type IncomingMessage } from "http";
+import { createServer as createHttpServer } from "http";
 import { Readable } from "node:stream";
 import { ReadableStream as WebReadableStream } from "node:stream/web";
 
 import { type CacheHandlerRoot } from "@nimpl/cache";
+import { type CacheServerOptions } from "./types";
 
 /**
- * Create server to control cache remotely via HTTP API
+ * Run cache server to control cache remotely via HTTP API
  * Implements routes expected by FetchLayer:
  * - GET /?key=... - get entry (returns stream with x-cache-metadata header)
  * - POST /?key=... - set entry (expects stream body and x-cache-metadata header)
@@ -15,13 +16,14 @@ import { type CacheHandlerRoot } from "@nimpl/cache";
  * - GET /readiness - checkIsReady (returns ok status)
  *
  * @param cacheHandler CacheHandler instance from @nimpl/cache
- * @param verifyRequest optional callback to verify request
+ * @param options.port port to run server on (default: 4000)
+ * @param options.host host to run server on (default: localhost)
+ * @param options.verifyRequest callback to verify request
  * @returns HTTP server
  */
-export const createServer = (
-    cacheHandler: CacheHandlerRoot,
-    verifyRequest?: (req: IncomingMessage) => Promise<boolean>,
-) => {
+export const init = (cacheHandler: CacheHandlerRoot, options?: Pick<CacheServerOptions, "verifyRequest">) => {
+    const { verifyRequest } = options || {};
+
     const server = createHttpServer(async (req, res) => {
         try {
             if (!req.url || (verifyRequest && !(await verifyRequest(req)))) {
@@ -171,6 +173,16 @@ export const createServer = (
                 res.end(JSON.stringify({ error: error instanceof Error ? error.message : String(error) }));
             }
         }
+    });
+    return server;
+};
+
+export const run = (cacheHandler: CacheHandlerRoot, options?: CacheServerOptions) => {
+    const { port = 4000, host = "localhost", ...rest } = options || {};
+    const server = init(cacheHandler, rest);
+
+    server.listen(port, host, () => {
+        console.log(`Cache server is running on http://${host}:${port}`);
     });
 
     return server;
