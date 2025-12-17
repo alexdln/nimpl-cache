@@ -18,11 +18,14 @@ const STATUS_COLORS = {
 };
 
 const SOURCE_COLORS = {
+    PERSISTENT: chalk.blue,
+    EPHEMERAL: chalk.green,
     MEMORY: chalk.blue,
     REDIS: chalk.red,
     FS: chalk.green,
     NEW: chalk.cyan,
     NONE: chalk.gray,
+    FETCH: chalk.magenta,
     DEFAULT: chalk.white,
 };
 

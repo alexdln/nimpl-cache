@@ -38,7 +38,7 @@ export type LogData = {
         | "DISCONNECTED"
         | "RECONNECTING"
         | "RETRY";
-    source: "MEMORY" | "REDIS" | "NEW" | "NONE" | "FS";
+    source: "PERSISTENT" | "EPHEMERAL" | "MEMORY" | "REDIS" | "NEW" | "NONE" | "FS" | "FETCH";
     key: string;
     message?: string;
 };

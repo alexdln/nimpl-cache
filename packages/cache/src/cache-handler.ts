@@ -55,10 +55,10 @@ export class CacheHandler implements CacheHandlerRoot {
         const ephemeralCache = await this.ephemeralLayer.getEntry(key);
         if (ephemeralCache) {
             if (ephemeralCache.status === "revalidate") {
-                this.logOperation("GET", "REVALIDATING", "MEMORY", key);
+                this.logOperation("GET", "REVALIDATING", "EPHEMERAL", key);
                 return undefined;
             }
-            this.logOperation("GET", "HIT", "MEMORY", key);
+            this.logOperation("GET", "HIT", "EPHEMERAL", key);
             return ephemeralCache;
         }
 
@@ -68,7 +68,7 @@ export class CacheHandler implements CacheHandlerRoot {
             return undefined;
         }
         if (pendingGet) {
-            this.logOperation("GET", "HIT", "REDIS", key);
+            this.logOperation("GET", "HIT", "PERSISTENT", key);
             const [cacheStream, responseStream] = pendingGet.entry.value.tee();
             pendingGet.entry.value = cacheStream;
             return { entry: { ...pendingGet.entry, value: responseStream }, size: pendingGet.size, status: "valid" };
@@ -88,7 +88,7 @@ export class CacheHandler implements CacheHandlerRoot {
                 this.logOperation(
                     "GET",
                     persistentCache === null ? "EXPIRED" : "MISS",
-                    persistentCache === null ? "REDIS" : "NONE",
+                    persistentCache === null ? "PERSISTENT" : "NONE",
                     key,
                 );
                 resolvePending(null);
@@ -103,15 +103,15 @@ export class CacheHandler implements CacheHandlerRoot {
             const responseEntry = { ...entry, value: responseStream };
 
             if (status === "revalidate") {
-                this.logOperation("GET", "REVALIDATING", "REDIS", key);
+                this.logOperation("GET", "REVALIDATING", "PERSISTENT", key);
                 resolvePending(undefined);
                 return undefined;
             }
             resolvePending({ entry: responseEntry, size, status: "valid" });
-            this.logOperation("GET", "HIT", "REDIS", key);
+            this.logOperation("GET", "HIT", "PERSISTENT", key);
             return { entry: responseEntry, size, status: "valid" };
         } catch (error) {
-            this.logOperation("GET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
+            this.logOperation("GET", "ERROR", "PERSISTENT", key, error instanceof Error ? error.message : undefined);
             resolvePending(null);
 
             if (error instanceof CacheError) throw error;
@@ -143,7 +143,7 @@ export class CacheHandler implements CacheHandlerRoot {
             this.logOperation("SET", "REVALIDATED", "NEW", key);
         } catch (error) {
             resolvePending(undefined);
-            this.logOperation("SET", "ERROR", "REDIS", key, error instanceof Error ? error.message : undefined);
+            this.logOperation("SET", "ERROR", "PERSISTENT", key, error instanceof Error ? error.message : undefined);
             if (error instanceof CacheError) throw error;
         }
     }
@@ -163,17 +163,17 @@ export class CacheHandler implements CacheHandlerRoot {
             return;
         }
 
-        this.logOperation("UPDATE_TAGS", "REVALIDATING", "MEMORY", tagsKey);
+        this.logOperation("UPDATE_TAGS", "REVALIDATING", "EPHEMERAL", tagsKey);
         await this.ephemeralLayer.updateTags(tags, durations);
 
         try {
-            this.logOperation("UPDATE_TAGS", "REVALIDATING", "REDIS", tagsKey);
+            this.logOperation("UPDATE_TAGS", "REVALIDATING", "PERSISTENT", tagsKey);
             await this.persistentLayer.updateTags(tags, durations);
         } catch (error) {
             this.logOperation(
                 "UPDATE_TAGS",
                 "ERROR",
-                "REDIS",
+                "PERSISTENT",
                 tagsKey,
                 error instanceof Error ? error.message : undefined,
             );
