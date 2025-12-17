@@ -6,7 +6,7 @@
     "start": "node index"
   },
   "dependencies": {
-    "@nimpl/cache-adapter": "latest",
-    "@nimpl/cache-in-memory": "latest"
+    "@nimpl/cache-server": "workspace:*",
+    "@nimpl/cache": "workspace:*"
   }
 }
