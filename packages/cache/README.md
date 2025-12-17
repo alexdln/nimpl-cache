@@ -91,6 +91,28 @@ Expired entries are detected and not returned, but files are not automatically d
 
 > **Note**: In multi-pod deployments without shared volumes, each pod will have its own filesystem cache, which won't be shared between instances.
 
+**Fetch Client** - Persistent cache accessed via HTTP API. Communicates with a remote cache server using HTTP requests, making it suitable for distributed deployments where cache needs to be shared across multiple instances or accessed through a dedicated cache service.
+
+Options (`FetchLayerOptions`):
+
+- `baseUrl` (string): Base URL of the cache server. Default: `"http://localhost:4000"`
+- `fetch` (typeof globalThis.fetch): Custom fetch implementation. Default: `globalThis.fetch`
+
+The fetch layer communicates with a cache server that implements the following HTTP API:
+
+- `GET /?key=...` - Retrieve cache entry (returns stream with `x-cache-metadata` header)
+- `POST /?key=...` - Store cache entry (expects stream body and `x-cache-metadata` header)
+- `PUT /` - Update tags (expects JSON body with `tags` and `durations`)
+- `DELETE /?key=...` - Delete cache entry
+- `GET /keys` - Get all cache keys (returns JSON array)
+- `GET /readiness` - Health check (returns ok status)
+
+The layer handles streaming cache values efficiently and includes memoization to prevent duplicate requests for the same key. Cache metadata (tags, timestamps, expiration) is transferred via HTTP headers.
+
+You can use the `createServer` function from `@nimpl/cache` to create an HTTP server that implements this API and wraps any `CacheHandler` instance as a store.
+
+> **Note**: The fetch layer requires a running cache server. If the server is unavailable, cache operations will fail for persistent layer.
+
 ## Configuration
 
 ### Options
