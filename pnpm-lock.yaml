@@ -6,6 +6,7 @@ settings:
 
 overrides:
   '@nimpl/cache-adapter>@nimpl/cache': workspace:*
+  '@nimpl/cache-server>@nimpl/cache': workspace:*
 
 importers:
 
@@ -196,8 +197,8 @@ importers:
   packages/cache-server:
     devDependencies:
       '@nimpl/cache':
-        specifier: latest
-        version: 0.2.0
+        specifier: workspace:*
+        version: link:../cache
       '@rollup/plugin-commonjs':
         specifier: 29.0.0
         version: 29.0.0(rollup@4.53.3)
@@ -1291,9 +1292,6 @@ packages:
 
   '@nimpl/cache@0.0.0-experimental-e9174c4':
     resolution: {integrity: sha512-AdBHHOWIYQYni/7N3JZ+wpQcmo0XMl/vGMt6UA6+RCJb6eAMr3VBsGEOtDSf4MHUK8kLbNmvyXT8o0ctTZK7uQ==}
-
-  '@nimpl/cache@0.2.0':
-    resolution: {integrity: sha512-wMOP1r/vAvduHRujb2lLiUZlWcc6TvkrJG7tuIObEwBiimAmYOJT8NXe6HyI1+FmYaZxB2M0LQldFWrdbPhFrQ==}
 
   '@parcel/watcher-android-arm64@2.5.1':
     resolution: {integrity: sha512-KF8+j9nNbUN8vzOFDpRMsaKBHZ/mcjEjMToVMJOhTozkDonQFFrRcfdLWn6yWKCmJKmdVxSgHiYvTCef4/qcBA==}
@@ -4289,14 +4287,6 @@ snapshots:
     optional: true
 
   '@nimpl/cache@0.0.0-experimental-e9174c4':
-    dependencies:
-      chalk: 4.1.2
-      ioredis: 5.8.2
-      lru-cache: 11.2.4
-    transitivePeerDependencies:
-      - supports-color
-
-  '@nimpl/cache@0.2.0':
     dependencies:
       chalk: 4.1.2
       ioredis: 5.8.2

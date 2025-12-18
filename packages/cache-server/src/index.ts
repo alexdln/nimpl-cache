@@ -75,7 +75,6 @@ export const init = (cacheHandler: CacheHandlerRoot, options?: Pick<CacheServerO
                         revalidate: entry.revalidate,
                     };
 
-                    res.statusCode = 200;
                     res.setHeader("Content-Type", "application/octet-stream");
                     res.setHeader("x-cache-metadata", JSON.stringify(metadata));
                     const [cacheStream, responseStream] = entry.value.tee();
@@ -113,7 +112,6 @@ export const init = (cacheHandler: CacheHandlerRoot, options?: Pick<CacheServerO
 
                     await cacheHandler.set(key, entry);
 
-                    res.statusCode = 200;
                     return res.end();
                 } catch (error) {
                     res.statusCode = 500;
@@ -130,6 +128,11 @@ export const init = (cacheHandler: CacheHandlerRoot, options?: Pick<CacheServerO
                     }
                     const { tags, durations } = JSON.parse(body);
 
+                    if (key) {
+                        await cacheHandler.updateKey(key, durations);
+                        return res.end();
+                    }
+
                     if (!Array.isArray(tags)) {
                         res.statusCode = 400;
                         return res.end();
@@ -137,7 +140,6 @@ export const init = (cacheHandler: CacheHandlerRoot, options?: Pick<CacheServerO
 
                     await cacheHandler.updateTags(tags, durations);
 
-                    res.statusCode = 200;
                     return res.end();
                 } catch (error) {
                     res.statusCode = 500;
@@ -154,7 +156,6 @@ export const init = (cacheHandler: CacheHandlerRoot, options?: Pick<CacheServerO
 
                 try {
                     await cacheHandler.delete(key);
-                    res.statusCode = 200;
                     return res.end();
                 } catch (error) {
                     res.statusCode = 500;
