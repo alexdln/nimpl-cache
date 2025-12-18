@@ -266,6 +266,33 @@ describe("FsLayer", () => {
         });
     });
 
+    describe("updateKey", () => {
+        it("should update metadata for existing key", async () => {
+            const now = performance.timeOrigin + performance.now();
+            const entry: Entry = {
+                tags: ["tag1"],
+                timestamp: now - 1000,
+                stale: 100,
+                expire: 10,
+                revalidate: 5,
+                value: createMockStream("content"),
+            };
+
+            await layer.set("test-key", entry);
+            await layer.updateKey("test-key", { expire: 20 });
+
+            const result = await layer.get("test-key");
+            expect(result).toBeDefined();
+            expect(result?.tags).toEqual(["tag1"]);
+            expect(result?.stale).toBe(0);
+            expect(result?.revalidate).toBe(20);
+        });
+
+        it("should handle missing metadata without throwing", async () => {
+            await expect(layer.updateKey("missing-key", { expire: 20 })).resolves.not.toThrow();
+        });
+    });
+
     describe("keys", () => {
         it("should return empty array when no keys exist", async () => {
             const keys = await layer.keys();

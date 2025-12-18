@@ -248,6 +248,30 @@ describe("CacheHandler", () => {
         });
     });
 
+    describe("updateKey", () => {
+        it("should delegate updateKey to both layers", async () => {
+            const now = performance.timeOrigin + performance.now();
+            const stream = Readable.toWeb(Readable.from("test"));
+            const entry: Entry = {
+                tags: ["tag1"],
+                timestamp: now,
+                stale: 0,
+                expire: 10,
+                revalidate: 5,
+                value: stream,
+            };
+
+            const spyEphemeral = jest.spyOn(handler.ephemeralLayer, "updateKey");
+            const spyPersistent = jest.spyOn(handler.persistentLayer, "updateKey");
+
+            await handler.set("test-key", Promise.resolve(entry));
+            await handler.updateKey("test-key", { expire: 20 });
+
+            expect(spyEphemeral).toHaveBeenCalledWith("test-key", { expire: 20 });
+            expect(spyPersistent).toHaveBeenCalledWith("test-key", { expire: 20 });
+        });
+    });
+
     describe("getExpiration", () => {
         it("should return Infinity", async () => {
             const expiration = await handler.getExpiration();
