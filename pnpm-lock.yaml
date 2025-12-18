@@ -7,6 +7,7 @@ settings:
 overrides:
   '@nimpl/cache-adapter>@nimpl/cache': workspace:*
   '@nimpl/cache-server>@nimpl/cache': workspace:*
+  '@nimpl/cache-tools>@nimpl/cache': workspace:*
 
 importers:
 
@@ -226,6 +227,9 @@ importers:
 
   packages/cache-tools:
     devDependencies:
+      '@nimpl/cache':
+        specifier: workspace:*
+        version: link:../cache
       '@rollup/plugin-commonjs':
         specifier: 29.0.0
         version: 29.0.0(rollup@4.53.3)

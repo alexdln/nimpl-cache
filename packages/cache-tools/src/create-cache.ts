@@ -1,4 +1,5 @@
-import { type CacheHandler, type Metadata } from "./lib/types";
+import { type CacheHandler, type Metadata } from "@nimpl/cache";
+
 import { objectToStream, streamToRaw } from "./lib/stream";
 
 export const cache =
