@@ -23,3 +23,5 @@ export type CacheWidgetData = {
     keys: string[];
     keyDetails: Record<string, CacheKeyInfo>;
 };
+
+export type Permissions = ("read" | "invalidate")[];
