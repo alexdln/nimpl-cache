@@ -21,7 +21,8 @@ export const getUpdatedMetadata = (
     durations: Durations | undefined,
     now: number,
 ): Metadata => {
-    if (!metadata.tags.some((tag) => tags.includes(tag))) return metadata;
+    const isEmptyTags = metadata.tags.length === 0 && tags.length === 0;
+    if (!isEmptyTags && !metadata.tags.some((tag) => tags.includes(tag))) return metadata;
 
     return {
         ...metadata,

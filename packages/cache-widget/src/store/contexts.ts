@@ -3,6 +3,8 @@ import { createContext } from "react";
 import { type CacheKeyInfo, type KeysData, type Category } from "../lib/types";
 import { useFetch } from "../lib/use-fetch";
 
+export const ApiUrlContext = createContext<string>("/api/cache-widget");
+
 export const WidgetOpenContext = createContext<boolean>(false);
 
 export const SetWidgetOpenContext = createContext<(open: boolean) => void>(() => {});

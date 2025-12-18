@@ -1,0 +1,22 @@
+.__ncw_entry-actions {
+    display: flex;
+    gap: 10px;
+}
+
+.__ncw_entry-actions-button {
+    padding: 8px 16px;
+    border: none;
+    border-radius: 6px;
+    background-color: #414141;
+    color: #ffffff;
+    cursor: pointer;
+
+    &:hover {
+        background-color: #212121;
+    }
+
+    &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+    }
+}
