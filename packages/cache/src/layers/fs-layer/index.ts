@@ -168,6 +168,33 @@ export class FsLayer implements CacheHandlerLayer {
         }
     }
 
+    async updateKey(key: string, durations?: Durations) {
+        await this.ensureBaseDir();
+        const metaPath = this.getFilePath(getCacheKeys(key, "").metaKey);
+        try {
+            const content = await readFile(metaPath, "utf8");
+            const metadata: Metadata = JSON.parse(content);
+            const updated = getUpdatedMetadata(
+                metadata,
+                metadata.tags,
+                durations,
+                performance.timeOrigin + performance.now(),
+            );
+
+            if (updated === metadata) return;
+
+            await writeFile(metaPath, JSON.stringify(updated), "utf8");
+        } catch (error) {
+            this.logger({
+                type: "UPDATE_KEY",
+                status: "ERROR",
+                source: "FS",
+                key,
+                message: error instanceof Error ? error.message : "Failed to update key in filesystem cache",
+            });
+        }
+    }
+
     async updateTags(tags: string[], durations?: Durations) {
         await this.ensureBaseDir();
         const metaPrefix = encodeURIComponent(PREFIX_META);

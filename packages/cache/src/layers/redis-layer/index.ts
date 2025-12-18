@@ -229,6 +229,24 @@ export class RedisLayer implements CacheHandlerLayer {
         }
     }
 
+    async updateKey(key: string, durations?: Durations) {
+        const connected = await this.connect();
+        if (!connected) return;
+
+        const { metaKey } = getCacheKeys(key, this.keyPrefix);
+        const metaEntry = await this.redisClient.get(metaKey);
+        if (!metaEntry) return;
+        const metadata: Metadata = JSON.parse(metaEntry);
+        const updated = getUpdatedMetadata(
+            metadata,
+            metadata.tags,
+            durations,
+            performance.timeOrigin + performance.now(),
+        );
+        if (updated === metadata) return;
+        await this.redisClient.set(metaKey, JSON.stringify(updated), "EX", updated.expire);
+    }
+
     async updateTags(tags: string[], durations?: Durations) {
         const connected = await this.connect();
         if (!connected) return;

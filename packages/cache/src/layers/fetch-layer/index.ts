@@ -97,6 +97,23 @@ export class FetchLayer implements CacheHandlerLayer {
         }
     }
 
+    async updateKey(key: string, durations?: Durations) {
+        const result = await this.fetchFn(`${this.baseUrl}/?key=${encodeURIComponent(key)}`, {
+            method: "PUT",
+            body: JSON.stringify({ durations }),
+        });
+
+        if (!result.ok) {
+            this.logger({
+                type: "UPDATE_KEY",
+                status: "ERROR",
+                source: "FETCH",
+                key,
+                message: result.statusText || "Failed to update key",
+            });
+        }
+    }
+
     async updateTags(tags: string[], durations?: Durations) {
         const result = await this.fetchFn(`${this.baseUrl}/`, {
             method: "PUT",
