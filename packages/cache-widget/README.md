@@ -98,6 +98,26 @@ You can customize the API endpoint URL (default - `/api/cache-widget`):
 <CacheWidget apiUrl="/api/custom-cache-endpoint" />
 ```
 
+### Permissions
+
+The `permissions` prop controls which UI features are available in the widget. It accepts an array of permission strings:
+
+- `"read"` - Allows viewing cache entries and their details. If not included or set to `null`, the widget will not render.
+- `"invalidate"` - Enables the "Revalidate" and "Expire" action buttons in the key details view.
+
+```tsx
+// Read-only access (default)
+<CacheWidget permissions={["read"]} />
+
+// Full access with invalidation
+<CacheWidget permissions={["read", "invalidate"]} />
+
+// Hide widget completely
+<CacheWidget permissions={null} />
+```
+
+> **Important**: Permissions are **UI-only** and only control what features are visible in the widget interface. For security, you **must** configure allowed methods and routes in your API endpoints. The widget will still make API requests based on what's visible in the UI, so ensure your API routes properly validate and restrict access to sensitive operations like cache invalidation.
+
 ## Additional
 
 You can use the widget to view all current cache entries by layer: main, ephemeral, and persistent.

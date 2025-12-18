@@ -2,17 +2,22 @@
 
 import React, { use } from "react";
 
+import { type Permissions } from "../../lib/types";
 import { formatBytes, formatTimestamp, formatDuration, formatDifference } from "../../lib/utils";
 import { CacheKeyContext, FetchDetailsContext, SetCacheKeyContext } from "../../store/contexts";
 import { Value } from "../value";
 import { Loading } from "../loading";
 import { ErrorMessage } from "../error";
 import { Reload } from "../reload";
-
-import "./details.scss";
 import { EntryActions } from "../entry-actions";
 
-export const Details: React.FC = () => {
+import "./details.scss";
+
+interface DetailsProps {
+    permissions: Permissions;
+}
+
+export const Details: React.FC<DetailsProps> = ({ permissions }) => {
     const { data, loading, error, reload } = use(FetchDetailsContext);
     const setCacheKey = use(SetCacheKeyContext);
     const cacheKey = use(CacheKeyContext);
@@ -104,7 +109,7 @@ export const Details: React.FC = () => {
                 )}
 
                 {data?.value && <Value value={data.value} />}
-                {data && <EntryActions className="__ncw_details-entry-actions" />}
+                {data && permissions.includes("invalidate") && <EntryActions className="__ncw_details-entry-actions" />}
             </div>
         </div>
     );

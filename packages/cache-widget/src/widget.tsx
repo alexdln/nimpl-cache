@@ -2,6 +2,7 @@
 
 import React from "react";
 
+import { type Permissions } from "./lib/types";
 import { Trigger } from "./components/trigger";
 import { Dialog } from "./components/dialog";
 import { CloseButton } from "./components/close-button";
@@ -13,9 +14,12 @@ import { CacheWidgetProvider } from "./store/provider";
 
 interface CacheWidgetProps {
     apiUrl?: string;
+    permissions?: Permissions | null;
 }
 
-export const CacheWidget: React.FC<CacheWidgetProps> = ({ apiUrl = "/api/cache-widget" }) => {
+export const CacheWidget: React.FC<CacheWidgetProps> = ({ apiUrl = "/api/cache-widget", permissions = ["read"] }) => {
+    if (permissions === null || !permissions.includes("read")) return null;
+
     return (
         <CacheWidgetProvider apiUrl={apiUrl}>
             <Trigger />
@@ -24,7 +28,7 @@ export const CacheWidget: React.FC<CacheWidgetProps> = ({ apiUrl = "/api/cache-w
                 <CloseButton />
                 <Content>
                     <KeysList />
-                    <Details />
+                    <Details permissions={permissions} />
                 </Content>
             </Dialog>
         </CacheWidgetProvider>
