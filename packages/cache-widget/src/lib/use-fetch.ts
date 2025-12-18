@@ -4,7 +4,7 @@ export interface UseFetchReturn<T> {
     data: T | null | undefined;
     loading: boolean;
     error: string | null;
-    fetch: (apiUrl: string) => Promise<void>;
+    fetch: (apiUrl: string, options?: RequestInit) => Promise<void>;
     reload: () => Promise<void>;
     reset: () => void;
 }
@@ -25,7 +25,7 @@ export function useFetch<T>(defaultUrl?: string): UseFetchReturn<T> {
     }, []);
 
     const fetchData = useCallback(
-        async (apiUrl: string) => {
+        async (apiUrl: string, options?: RequestInit) => {
             abortCurrentRequest();
             const controller = new AbortController();
             abortControllerRef.current = controller;
@@ -35,7 +35,7 @@ export function useFetch<T>(defaultUrl?: string): UseFetchReturn<T> {
             setError(null);
 
             try {
-                const response = await fetch(apiUrl, { signal: controller.signal });
+                const response = await fetch(apiUrl, { signal: controller.signal, ...options });
 
                 if (controller.signal.aborted) {
                     return;

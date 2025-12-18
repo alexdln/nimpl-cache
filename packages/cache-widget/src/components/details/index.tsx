@@ -10,6 +10,7 @@ import { ErrorMessage } from "../error";
 import { Reload } from "../reload";
 
 import "./details.scss";
+import { EntryActions } from "../entry-actions";
 
 export const Details: React.FC = () => {
     const { data, loading, error, reload } = use(FetchDetailsContext);
@@ -103,6 +104,7 @@ export const Details: React.FC = () => {
                 )}
 
                 {data?.value && <Value value={data.value} />}
+                {data && <EntryActions className="__ncw_details-entry-actions" />}
             </div>
         </div>
     );

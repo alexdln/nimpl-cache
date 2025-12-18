@@ -4,6 +4,7 @@ import React, { useState, useCallback } from "react";
 
 import { type Category, type CacheKeyInfo, type KeysData } from "../lib/types";
 import {
+    ApiUrlContext,
     WidgetOpenContext,
     SetWidgetOpenContext,
     CacheKeyContext,
@@ -70,22 +71,24 @@ export const CacheWidgetProvider: React.FC<CacheWidgetProviderProps> = ({ apiUrl
     );
 
     return (
-        <WidgetOpenContext.Provider value={isOpen}>
-            <SetWidgetOpenContext.Provider value={widgetToggleHandler}>
-                <CacheKeyContext.Provider value={cacheKey}>
-                    <SetCacheKeyContext.Provider value={cacheKeyChangeHandler}>
-                        <CategoryContext.Provider value={category}>
-                            <SetCategoryContext.Provider value={categoryChangeHandler}>
-                                <FetchKeysContext.Provider value={keysFetch}>
-                                    <FetchDetailsContext.Provider value={detailsFetch}>
-                                        {children}
-                                    </FetchDetailsContext.Provider>
-                                </FetchKeysContext.Provider>
-                            </SetCategoryContext.Provider>
-                        </CategoryContext.Provider>
-                    </SetCacheKeyContext.Provider>
-                </CacheKeyContext.Provider>
-            </SetWidgetOpenContext.Provider>
-        </WidgetOpenContext.Provider>
+        <ApiUrlContext.Provider value={apiUrl}>
+            <WidgetOpenContext.Provider value={isOpen}>
+                <SetWidgetOpenContext.Provider value={widgetToggleHandler}>
+                    <CacheKeyContext.Provider value={cacheKey}>
+                        <SetCacheKeyContext.Provider value={cacheKeyChangeHandler}>
+                            <CategoryContext.Provider value={category}>
+                                <SetCategoryContext.Provider value={categoryChangeHandler}>
+                                    <FetchKeysContext.Provider value={keysFetch}>
+                                        <FetchDetailsContext.Provider value={detailsFetch}>
+                                            {children}
+                                        </FetchDetailsContext.Provider>
+                                    </FetchKeysContext.Provider>
+                                </SetCategoryContext.Provider>
+                            </CategoryContext.Provider>
+                        </SetCacheKeyContext.Provider>
+                    </CacheKeyContext.Provider>
+                </SetWidgetOpenContext.Provider>
+            </WidgetOpenContext.Provider>
+        </ApiUrlContext.Provider>
     );
 };
