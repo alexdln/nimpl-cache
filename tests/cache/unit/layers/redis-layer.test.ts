@@ -332,4 +332,38 @@ describe("RedisLayer", () => {
             expect(result).toBeUndefined();
         });
     });
+
+    describe("updateKey", () => {
+        it("should update metadata for existing key", async () => {
+            const now = performance.timeOrigin + performance.now();
+            const meta: Metadata = {
+                tags: ["tag1"],
+                timestamp: now - 1000,
+                stale: 100,
+                expire: 10,
+                revalidate: 5,
+            };
+
+            mockRedisClient.status = "ready";
+            mockRedisClient.get.mockResolvedValueOnce(JSON.stringify(meta));
+
+            await layer.updateKey("test-key", { expire: 20 });
+
+            expect(mockRedisClient.get).toHaveBeenCalledWith("nic:meta:test-key");
+            expect(mockRedisClient.set).toHaveBeenCalledWith(
+                "nic:meta:test-key",
+                expect.stringContaining('"revalidate":20'),
+                "EX",
+                expect.any(Number),
+            );
+        });
+
+        it("should do nothing when meta entry is missing", async () => {
+            mockRedisClient.status = "ready";
+            mockRedisClient.get.mockResolvedValueOnce(null);
+
+            await expect(layer.updateKey("missing-key", { expire: 20 })).resolves.toBeUndefined();
+            expect(mockRedisClient.set).not.toHaveBeenCalled();
+        });
+    });
 });

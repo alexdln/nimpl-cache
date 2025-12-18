@@ -25,6 +25,8 @@ export type CacheHandler = {
     get: (key: string) => Promise<Entry | undefined | null>;
     set: (key: string, value: Promise<Entry>) => Promise<void>;
     keys: () => Promise<KeysData>;
+    updateTags: (tags: string[], durations?: { expire?: number }) => Promise<void>;
+    updateKey: (key: string, durations?: { expire?: number }) => Promise<void>;
     ephemeralLayer: {
         getEntry: (key: string) => Promise<CacheEntry | undefined | null>;
         get: (key: string) => Promise<Entry | undefined | null>;

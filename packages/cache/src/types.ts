@@ -25,7 +25,7 @@ export type CacheEntry = {
 };
 
 export type LogData = {
-    type: "GET" | "SET" | "UPDATE_TAGS" | "CONNECTION";
+    type: "GET" | "SET" | "UPDATE_TAGS" | "UPDATE_KEY" | "CONNECTION";
     status:
         | "HIT"
         | "MISS"
@@ -56,6 +56,7 @@ export interface CacheHandlerLayer {
     get(key: string): Promise<Entry | undefined | null>;
     set(key: string, pendingEntry: Promise<Entry> | Entry): Promise<void>;
     delete(key: string): Promise<void>;
+    updateKey(key: string, durations?: Durations): Promise<void>;
     updateTags(tags: string[], durations?: Durations): Promise<void>;
     checkIsReady(): Promise<boolean>;
     keys(): Promise<string[]>;

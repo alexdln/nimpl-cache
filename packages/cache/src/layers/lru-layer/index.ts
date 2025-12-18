@@ -78,6 +78,21 @@ export class LruLayer implements CacheHandlerLayer {
         this.lruClient.delete(key);
     }
 
+    async updateKey(key: string, durations?: Durations) {
+        const now = performance.timeOrigin + performance.now();
+        const cacheEntry = this.lruClient.get(key);
+
+        if (!cacheEntry) return;
+
+        const { entry, size, status } = cacheEntry;
+        const updatedMetadata = getUpdatedMetadata(entry, entry.tags, durations, now);
+
+        if (updatedMetadata === entry) return;
+
+        const updatedEntry: Entry = { ...entry, ...updatedMetadata };
+        this.lruClient.set(key, { entry: updatedEntry, size, status });
+    }
+
     async updateTags(tags: string[], durations?: Durations) {
         const now = performance.timeOrigin + performance.now();
         this.lruClient.forEach((value, key) => {

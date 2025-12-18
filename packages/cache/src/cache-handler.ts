@@ -33,7 +33,7 @@ export class CacheHandler implements CacheHandlerRoot {
     }
 
     private logOperation(
-        type: "GET" | "SET" | "UPDATE_TAGS",
+        type: "GET" | "SET" | "UPDATE_TAGS" | "UPDATE_KEY",
         status: LogData["status"],
         source: LogData["source"],
         key: string,
@@ -154,6 +154,13 @@ export class CacheHandler implements CacheHandlerRoot {
 
     async getExpiration() {
         return Infinity;
+    }
+
+    async updateKey(key: string, durations?: Durations) {
+        this.logOperation("UPDATE_KEY", "REVALIDATING", "EPHEMERAL", key);
+        await this.ephemeralLayer.updateKey(key, durations);
+        this.logOperation("UPDATE_KEY", "REVALIDATING", "PERSISTENT", key);
+        await this.persistentLayer.updateKey(key, durations);
     }
 
     async updateTags(tags: string[], durations?: Durations) {

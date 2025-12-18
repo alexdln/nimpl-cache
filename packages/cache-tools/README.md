@@ -12,14 +12,15 @@ pnpm add @nimpl/cache-tools
 
 ## Usage
 
-### Init a cache tools
+### Init cache tools
 
 ```ts
 // cache-tools.ts
 import { cacheHandler } from "@/cache-handler";
+import { createCache, createHelpers } from "@nimpl/cache-tools";
 
 export const { cache } = createCache(cacheHandler);
-export const { getKeys, getKeyDetails, getCacheData } =
+export const { getKeys, getKeyDetails, getCacheData, updateTags, updateKey } =
   createHelpers(cacheHandler);
 ```
 
@@ -83,6 +84,26 @@ export const GET = async (
 ```
 
 Use `getCacheData` as the single entry point for the [widget](https://www.npmjs.com/package/@nimpl/cache-widget).
+
+### Invalidate cache entries
+
+`createHelpers` also exposes helpers for updating cache lifetimes through your own tooling or admin routes:
+
+- `updateTags(tags: string[], duration: number)` – updates all entries that contain **any** of the provided tags. Internally it calls `cacheHandler.updateTags(tags, { expire: duration })`, resetting `stale` and `revalidate` and extending `expire` based on your handler implementation.
+- `updateKey(key: string, duration: number)` – updates a **single cache key** via `cacheHandler.updateKey(key, { expire: duration })`. This is useful when you know the exact key you want to revalidate/extend without touching other entries.
+
+Example Next.js route that exposes both helpers:
+
+```ts
+// app/api/cache-admin/route.ts
+import { updateTags, updateKey } from "@/cache-tools";
+
+export async function POST(req: Request) {
+  const body = await req.json();
+  if (body.tags) await updateTags(body.tags, body.duration ?? 0);
+  return new Response(null, { status: 204 });
+}
+```
 
 ## Examples
 

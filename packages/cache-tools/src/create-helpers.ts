@@ -83,11 +83,21 @@ export const getCacheData = (cacheHandler: CacheHandler, segments?: string[]) =>
     return getKeyDetails(cacheHandler, type, segments[1]);
 };
 
+export const updateTags = async (cacheHandler: CacheHandler, tags: string[], duration: number) => {
+    return cacheHandler.updateTags(tags, { expire: duration });
+};
+
+export const updateKey = async (cacheHandler: CacheHandler, key: string, duration: number) => {
+    return cacheHandler.updateKey(key, { expire: duration });
+};
+
 export const createHelpers = (cacheHandler: CacheHandler) => {
     return {
         getKeys: (type: "main" | "persistent" | "ephemeral") => getKeys(cacheHandler, type),
         getKeyDetails: (type: "main" | "persistent" | "ephemeral", key: string) =>
             getKeyDetails(cacheHandler, type, key),
         getCacheData: (segments?: string[]) => getCacheData(cacheHandler, segments),
+        updateTags: (tags: string[], duration: number) => updateTags(cacheHandler, tags, duration),
+        updateKey: (key: string, duration: number) => updateKey(cacheHandler, key, duration),
     };
 };

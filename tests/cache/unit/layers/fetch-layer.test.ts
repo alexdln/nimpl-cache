@@ -533,4 +533,42 @@ describe("FetchLayer", () => {
             expect(mockFetch).toHaveBeenCalledWith(`${baseUrl}/?key=test%2Fkey%3Awith%3Aspecial`, expect.anything());
         });
     });
+
+    describe("updateKey", () => {
+        it("should send PUT request with durations", async () => {
+            mockFetch.mockResolvedValue({
+                ok: true,
+                status: 200,
+            });
+
+            await layer.updateKey("test-key", { expire: 20 });
+
+            expect(mockFetch).toHaveBeenCalledWith(
+                `${baseUrl}/?key=test-key`,
+                expect.objectContaining({
+                    method: "PUT",
+                    body: JSON.stringify({ durations: { expire: 20 } }),
+                }),
+            );
+        });
+
+        it("should log error when request fails", async () => {
+            mockFetch.mockResolvedValue({
+                ok: false,
+                status: 500,
+                statusText: "Internal Server Error",
+            });
+
+            await layer.updateKey("test-key", { expire: 20 });
+
+            expect(mockLogger).toHaveBeenCalledWith(
+                expect.objectContaining({
+                    type: "UPDATE_KEY",
+                    status: "ERROR",
+                    source: "FETCH",
+                    key: "test-key",
+                }),
+            );
+        });
+    });
 });

@@ -178,6 +178,14 @@ Stores a cache entry.
   - `400 Bad Request`: Missing key or metadata
   - `500 Internal Server Error`: Server error
 
+### `PUT /?key=<key>`
+
+Updates cache lifetimes for a single key using the handler’s `updateKey` method.
+
+- **Query Parameters:**
+  - `key` (required): The cache key to update
+- **Body:** JSON object with optional `durations` object (e.g. `{ "durations": { "expire": 60 } }`)
+
 ### `PUT /`
 
 Updates tags for cache entries.
