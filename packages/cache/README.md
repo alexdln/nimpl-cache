@@ -102,7 +102,8 @@ The fetch layer communicates with a cache server that implements the following H
 
 - `GET /?key=...` - Retrieve cache entry (returns stream with `x-cache-metadata` header)
 - `POST /?key=...` - Store cache entry (expects stream body and `x-cache-metadata` header)
-- `PUT /` - Update tags (expects JSON body with `tags` and `durations`)
+- `PUT /` - Update tags for matching entries (expects JSON body with `tags` and optional `durations`)
+- `PUT /?key=...` - Update a single cache key (`updateKey`, expects JSON body with optional `durations`)
 - `DELETE /?key=...` - Delete cache entry
 - `GET /keys` - Get all cache keys (returns JSON array)
 - `GET /readiness` - Health check (returns ok status)
@@ -263,7 +264,7 @@ These methods are improved versions of the default Next.js `cacheHandler` for be
 
 - `get(key: string)`: Promise<Entry | undefined | null> - Retrieves a cache entry. Returns `undefined` if not found, `null` if expired.
 - `set(key: string, pendingEntry: Promise<Entry> | Entry)`: Promise<void> - Stores a cache entry.
-- `updateTags(tags: string[], durations?: Durations)`: Promise<void> - Updates tags for cache entries, used for cache invalidation.
+- `updateTags(tags: string[], durations?: Durations)`: Promise<void> - Updates cache entries by tags, used for cache invalidation.
 - `refreshTags()`: Promise<void> - Refreshes tags from persistent storage.
 - `getExpiration()`: Promise<number> - Returns the expiration time for cache entries.
 
@@ -278,6 +279,7 @@ These methods are critically necessary and can be reused from any other implemen
 - `checkIsReady()`: Promise<boolean> - Checks if the layer is ready to serve requests. Useful for health checks and infrastructure tools.
 - `keys()`: Promise<string[]> - Returns all cache keys. Useful for tools and different infrastructures.
 - `delete(key: string)`: Promise<void> - Deletes a cache entry. Useful for tools and manual cache management.
+- `updateKey(key: string, durations?: Durations)`: Promise<void> - Updates cache entry by key, used for cache invalidation.
 
 #### Core Handlers
 
