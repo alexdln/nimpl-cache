@@ -1,6 +1,6 @@
 # nimpl-cache base example
 
-Basic example of using [@nimpl/cache-adapter](https://github.com/vordgi/nimpl-cache/tree/main/packages/cache-adapter) with [@nimpl/cache-in-memory](https://github.com/vordgi/nimpl-cache/tree/main/packages/cache-in-memory) as cacheHandler
+Basic example of using [@nimpl/cache-adapter](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-adapter) with [@nimpl/cache-in-memory](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-in-memory) as cacheHandler
 
 For a full check, you need to start the server:
 
@@ -24,9 +24,9 @@ You can also run a copy of the application to check the health of the shared cac
 npm run start:clone
 ```
 
-Now both instances of one assembled application have a common cache - a running server. It can be placed anywhere, the main thing is to point the url to it. More details on the [@nimpl/cache-adapter](https://github.com/vordgi/nimpl-cache/tree/main/packages/cache-adapter) page.
+Now both instances of one assembled application have a common cache - a running server. It can be placed anywhere, the main thing is to point the url to it. More details on the [@nimpl/cache-adapter](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-adapter) page.
 
 ## Links
 
-- [nimpl-cache-adapter](https://github.com/vordgi/nimpl-cache/tree/main/packages/cache-adapter);
-- [nimpl-cache-in-memory](https://github.com/vordgi/nimpl-cache/tree/main/packages/cache-in-memory).
+- [nimpl-cache-adapter](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-adapter);
+- [nimpl-cache-in-memory](https://github.com/alexdln/nimpl-cache/tree/main/packages/cache-in-memory).

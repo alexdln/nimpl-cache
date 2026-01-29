@@ -19,15 +19,17 @@
     "url": "https://github.com/alexdln/"
   },
   "devDependencies": {
-    "eslint": "9.39.1",
+    "eslint": "9.39.2",
     "eslint-config-prettier": "10.1.8",
-    "eslint-plugin-prettier": "5.5.4",
+    "eslint-plugin-prettier": "5.5.5",
     "husky": "9.1.7",
-    "prettier": "3.7.4",
-    "typescript-eslint": "8.48.1"
+    "prettier": "3.8.1",
+    "typescript-eslint": "8.54.0"
   },
   "lint-staged": {
-    "*.{ts,tsx,js,jsx}": ["eslint"]
+    "*.{ts,tsx,js,jsx}": [
+      "eslint"
+    ]
   },
   "resolutions": {
     "@nimpl/cache-adapter>@nimpl/cache": "workspace:*",

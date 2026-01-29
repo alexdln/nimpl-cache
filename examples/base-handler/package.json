@@ -10,17 +10,17 @@
   },
   "dependencies": {
     "@nimpl/cache": "workspace:*",
-    "@nimpl/cache-widget": "workspace:*",
     "@nimpl/cache-tools": "workspace:*",
-    "next": "16.0.10",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "@nimpl/cache-widget": "workspace:*",
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
-    "@types/react": "19.2.7",
+    "@types/node": "25.1.0",
+    "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
-    "eslint": "9.39.1",
+    "eslint": "9.39.2",
     "typescript": "5.9.3"
   },
   "packageManager": "pnpm@10.24.0+sha512.01ff8ae71b4419903b65c60fb2dc9d34cf8bb6e06d03bde112ef38f7a34d6904c424ba66bea5cdcf12890230bf39f9580473140ed9c946fef328b6e5238a345a"
