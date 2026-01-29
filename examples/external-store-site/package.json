@@ -11,13 +11,13 @@
   },
   "dependencies": {
     "@nimpl/cache": "workspace:*",
-    "next": "16.0.10",
-    "react": "19.2.3",
-    "react-dom": "19.2.3"
+    "next": "16.1.6",
+    "react": "19.2.4",
+    "react-dom": "19.2.4"
   },
   "devDependencies": {
-    "@types/node": "24.10.1",
-    "@types/react": "19.2.7",
+    "@types/node": "25.1.0",
+    "@types/react": "19.2.10",
     "@types/react-dom": "19.2.3",
     "cross-env": "10.1.0",
     "typescript": "5.9.3"
